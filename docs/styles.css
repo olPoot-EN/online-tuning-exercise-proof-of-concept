@@ -312,6 +312,63 @@ body {
     animation: spin 1s linear infinite;
 }
 
+.loading-step {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 0.5rem 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.3s ease;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.loading-step.active {
+    background: var(--secondary-color);
+    color: white;
+    transform: scale(1.02);
+}
+
+.loading-step.completed {
+    background: var(--success-color);
+    color: white;
+}
+
+.loading-step.error {
+    background: var(--accent-color);
+    color: white;
+}
+
+.step-icon {
+    margin-right: 0.5rem;
+    font-size: 1.1em;
+}
+
+.loading-step.active .step-icon {
+    animation: pulse 1.5s ease-in-out infinite alternate;
+}
+
+.loading-step.completed .step-icon::before {
+    content: "✓";
+}
+
+.loading-step.error .step-icon::before {
+    content: "❌";
+}
+
+@keyframes pulse {
+    from {
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
 .error-message {
     background: #f8d7da;
     color: #58151c;

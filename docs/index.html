@@ -12,8 +12,35 @@
     <div id="loading-overlay" class="loading-overlay">
         <div>
             <div class="loading-spinner"></div>
-            <p style="margin-top: 1rem; text-align: center;">Loading Voltage Tuning Exercise...</p>
-            <p id="loading-status" style="text-align: center; color: var(--text-muted);">Initializing Pyodide...</p>
+            <p style="margin-top: 1rem; text-align: center; font-size: 1.2rem; font-weight: 500;">Loading Voltage Tuning Exercise...</p>
+            
+            <!-- Progress Steps -->
+            <div id="loading-steps" style="margin: 2rem 0; text-align: center;">
+                <div class="loading-step" id="step-pyodide">
+                    <span class="step-icon">⏳</span> Loading Pyodide Runtime
+                </div>
+                <div class="loading-step" id="step-numpy">
+                    <span class="step-icon">⏳</span> Loading NumPy
+                </div>
+                <div class="loading-step" id="step-charts">
+                    <span class="step-icon">⏳</span> Initializing Charts
+                </div>
+                <div class="loading-step" id="step-python">
+                    <span class="step-icon">⏳</span> Loading Python Modules
+                </div>
+                <div class="loading-step" id="step-simulation">
+                    <span class="step-icon">⏳</span> Setting up Simulation
+                </div>
+            </div>
+            
+            <!-- Status and Progress -->
+            <p id="loading-status" style="text-align: center; color: var(--text-muted); margin-bottom: 0.5rem;">Initializing...</p>
+            <p id="loading-detail" style="text-align: center; color: var(--text-muted); font-size: 0.9rem; min-height: 1.2em;">First load typically takes 5-10 seconds</p>
+            
+            <!-- Progress Bar -->
+            <div style="width: 300px; margin: 1rem auto; background: var(--border-color, #ddd); border-radius: 10px; height: 8px;">
+                <div id="loading-progress" style="width: 0%; background: var(--primary-color, #3498db); height: 100%; border-radius: 10px; transition: width 0.3s ease;"></div>
+            </div>
         </div>
     </div>
 
@@ -130,6 +157,10 @@
                 <div class="status-item">
                     <span class="status-label">Reactive Power</span>
                     <span id="reactive-power" class="status-value">0.000 pu</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Version</span>
+                    <span id="build-version" class="status-value">__BUILD_VERSION__</span>
                 </div>
             </div>
         </div>

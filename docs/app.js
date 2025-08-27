@@ -1,3 +1,205 @@
+// Retry Manager for handling race conditions and network issues
+class RetryManager {
+    constructor() {
+        this.defaultConfig = {
+            maxAttempts: 5,
+            initialDelay: 100, // ms
+            maxDelay: 5000, // ms
+            backoffFactor: 2,
+            jitter: true
+        };
+    }
+
+    async withRetry(operation, config = {}) {
+        const finalConfig = { ...this.defaultConfig, ...config };
+        let lastError;
+        
+        for (let attempt = 1; attempt <= finalConfig.maxAttempts; attempt++) {
+            try {
+                const result = await operation(attempt);
+                return { success: true, result, attempt };
+            } catch (error) {
+                lastError = error;
+                console.warn(`Attempt ${attempt}/${finalConfig.maxAttempts} failed:`, error.message);
+                
+                if (attempt === finalConfig.maxAttempts) {
+                    break;
+                }
+                
+                const delay = this.calculateDelay(attempt, finalConfig);
+                console.log(`Retrying in ${delay}ms...`);
+                await this.sleep(delay);
+            }
+        }
+        
+        return { success: false, error: lastError, attempts: finalConfig.maxAttempts };
+    }
+
+    calculateDelay(attempt, config) {
+        let delay = Math.min(
+            config.initialDelay * Math.pow(config.backoffFactor, attempt - 1),
+            config.maxDelay
+        );
+        
+        if (config.jitter) {
+            // Add ±25% jitter to prevent thundering herd
+            const jitterRange = delay * 0.25;
+            delay += (Math.random() - 0.5) * 2 * jitterRange;
+        }
+        
+        return Math.max(50, Math.floor(delay)); // Minimum 50ms delay
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Specific retry configurations for different types of operations
+    static getConfig(type) {
+        const configs = {
+            'dependency-load': {
+                maxAttempts: 8,
+                initialDelay: 100,
+                maxDelay: 2000,
+                backoffFactor: 1.5
+            },
+            'network-request': {
+                maxAttempts: 5,
+                initialDelay: 500,
+                maxDelay: 5000,
+                backoffFactor: 2
+            },
+            'initialization': {
+                maxAttempts: 3,
+                initialDelay: 200,
+                maxDelay: 1000,
+                backoffFactor: 2
+            }
+        };
+        
+        return configs[type] || {};
+    }
+}
+
+// Loading Manager for enhanced UI feedback
+class LoadingManager {
+    constructor() {
+        this.currentStep = null;
+        this.totalSteps = 5;
+        this.completedSteps = 0;
+    }
+
+    setStep(stepId, status = 'active', message = '', detail = '') {
+        // Update previous step to completed if this is a new step
+        if (this.currentStep && this.currentStep !== stepId && status === 'active') {
+            this.setStepCompleted(this.currentStep);
+        }
+
+        const stepElement = document.getElementById(stepId);
+        const statusElement = document.getElementById('loading-status');
+        const detailElement = document.getElementById('loading-detail');
+        const progressElement = document.getElementById('loading-progress');
+
+        if (stepElement) {
+            stepElement.className = `loading-step ${status}`;
+        }
+
+        if (statusElement && message) {
+            statusElement.textContent = message;
+        }
+
+        if (detailElement && detail) {
+            detailElement.textContent = detail;
+        }
+
+        // Update progress bar
+        if (status === 'completed') {
+            this.completedSteps++;
+        }
+        
+        if (progressElement) {
+            const progress = (this.completedSteps / this.totalSteps) * 100;
+            progressElement.style.width = `${progress}%`;
+        }
+
+        this.currentStep = stepId;
+    }
+
+    setStepCompleted(stepId) {
+        const stepElement = document.getElementById(stepId);
+        if (stepElement) {
+            stepElement.className = 'loading-step completed';
+        }
+        this.completedSteps++;
+    }
+
+    setStepError(stepId, errorMessage) {
+        const stepElement = document.getElementById(stepId);
+        const detailElement = document.getElementById('loading-detail');
+        
+        if (stepElement) {
+            stepElement.className = 'loading-step error';
+        }
+
+        if (detailElement) {
+            detailElement.textContent = errorMessage;
+            detailElement.style.color = 'var(--accent-color)';
+        }
+    }
+
+    updateRetryStatus(stepId, attempt, maxAttempts, error = null) {
+        const message = error ? 
+            `Retrying... (attempt ${attempt}/${maxAttempts})` :
+            `Loading... (attempt ${attempt}/${maxAttempts})`;
+            
+        const detail = error ?
+            `Issue: ${error.message.split(' - ')[0]}` :
+            'This may take a moment on first load';
+
+        this.setStep(stepId, 'active', message, detail);
+    }
+
+    complete() {
+        const statusElement = document.getElementById('loading-status');
+        const detailElement = document.getElementById('loading-detail');
+        const progressElement = document.getElementById('loading-progress');
+
+        if (statusElement) {
+            statusElement.textContent = 'Ready to use!';
+        }
+
+        if (detailElement) {
+            detailElement.textContent = 'Application initialized successfully';
+            detailElement.style.color = 'var(--success-color)';
+        }
+
+        if (progressElement) {
+            progressElement.style.width = '100%';
+            progressElement.style.background = 'var(--success-color)';
+        }
+
+        // Mark all steps as completed
+        ['step-pyodide', 'step-numpy', 'step-charts', 'step-python', 'step-simulation'].forEach(id => {
+            this.setStepCompleted(id);
+        });
+    }
+
+    showError(message, detail = '') {
+        const statusElement = document.getElementById('loading-status');
+        const detailElement = document.getElementById('loading-detail');
+
+        if (statusElement) {
+            statusElement.textContent = 'Initialization Failed';
+            statusElement.style.color = 'var(--accent-color)';
+        }
+
+        if (detailElement) {
+            detailElement.innerHTML = `${detail}<br><strong>Please refresh the page to try again</strong>`;
+            detailElement.style.color = 'var(--accent-color)';
+        }
+    }
+}
+
 // Security Manager
 class SecurityManager {
     constructor() {
@@ -90,33 +292,94 @@ class PyodideBridge {
         this.pyodide = null;
         this.isInitialized = false;
         this.simulationFunctions = {};
+        this.retryManager = new RetryManager();
+        this.loadingManager = new LoadingManager();
     }
 
     async initialize() {
         try {
+            // Step 1: Load Pyodide with retry logic
             console.log('Loading Pyodide...');
-            this.updateLoadingStatus('Loading Pyodide runtime...');
+            this.loadingManager.setStep('step-pyodide', 'active', 'Loading Pyodide runtime...', 'Downloading WebAssembly runtime (~3MB)');
             
-            this.pyodide = await loadPyodide();
-            console.log('Pyodide loaded successfully');
+            const pyodideResult = await this.retryManager.withRetry(async (attempt) => {
+                if (attempt > 1) {
+                    this.loadingManager.updateRetryStatus('step-pyodide', attempt, 8);
+                }
+                
+                // Check if loadPyodide is available
+                if (typeof loadPyodide === 'undefined') {
+                    throw new Error('loadPyodide function not available - CDN script may not be loaded yet');
+                }
+                
+                return await loadPyodide();
+            }, RetryManager.getConfig('dependency-load'));
 
-            this.updateLoadingStatus('Loading NumPy...');
-            await this.pyodide.loadPackage(['numpy']);
-            console.log('NumPy loaded successfully');
-
-            this.updateLoadingStatus('Loading Python modules...');
-            await this.loadEmbeddedPythonCode();
+            if (!pyodideResult.success) {
+                this.loadingManager.setStepError('step-pyodide', 'Failed to load Pyodide runtime');
+                throw new Error(`Failed to load Pyodide after ${pyodideResult.attempts} attempts: ${pyodideResult.error.message}`);
+            }
             
-            this.updateLoadingStatus('Initializing simulation...');
-            await this.setupPythonFunctions();
+            this.pyodide = pyodideResult.result;
+            this.loadingManager.setStep('step-pyodide', 'completed');
+            console.log(`Pyodide loaded successfully on attempt ${pyodideResult.attempt}`);
 
+            // Step 2: Load NumPy with retry logic
+            this.loadingManager.setStep('step-numpy', 'active', 'Loading NumPy...', 'Downloading scientific computing library (~8MB)');
+            const numpyResult = await this.retryManager.withRetry(async (attempt) => {
+                if (attempt > 1) {
+                    this.loadingManager.updateRetryStatus('step-numpy', attempt, 5, numpyResult.error);
+                }
+                return await this.pyodide.loadPackage(['numpy']);
+            }, RetryManager.getConfig('network-request'));
+
+            if (!numpyResult.success) {
+                this.loadingManager.setStepError('step-numpy', 'Failed to load NumPy package');
+                throw new Error(`Failed to load NumPy after ${numpyResult.attempts} attempts: ${numpyResult.error.message}`);
+            }
+            
+            this.loadingManager.setStep('step-numpy', 'completed');
+            console.log(`NumPy loaded successfully on attempt ${numpyResult.attempt}`);
+
+            // Step 3: Load Python modules with retry logic
+            this.loadingManager.setStep('step-python', 'active', 'Loading Python modules...', 'Loading Newton-Raphson and control system code');
+            const moduleResult = await this.retryManager.withRetry(async (attempt) => {
+                if (attempt > 1) {
+                    this.loadingManager.updateRetryStatus('step-python', attempt, 3, moduleResult.error);
+                }
+                return await this.loadEmbeddedPythonCode();
+            }, RetryManager.getConfig('initialization'));
+
+            if (!moduleResult.success) {
+                this.loadingManager.setStepError('step-python', 'Failed to load Python modules');
+                throw new Error(`Failed to load Python modules after ${moduleResult.attempts} attempts: ${moduleResult.error.message}`);
+            }
+            
+            this.loadingManager.setStep('step-python', 'completed');
+            
+            // Step 4: Setup Python functions with retry logic
+            this.loadingManager.setStep('step-simulation', 'active', 'Setting up simulation...', 'Initializing simulation functions and state');
+            const setupResult = await this.retryManager.withRetry(async (attempt) => {
+                if (attempt > 1) {
+                    this.loadingManager.updateRetryStatus('step-simulation', attempt, 3, setupResult.error);
+                }
+                return await this.setupPythonFunctions();
+            }, RetryManager.getConfig('initialization'));
+
+            if (!setupResult.success) {
+                this.loadingManager.setStepError('step-simulation', 'Failed to setup simulation');
+                throw new Error(`Failed to setup simulation functions after ${setupResult.attempts} attempts: ${setupResult.error.message}`);
+            }
+
+            this.loadingManager.setStep('step-simulation', 'completed');
             this.isInitialized = true;
-            console.log('PyodideBridge initialized successfully');
+            console.log('PyodideBridge initialized successfully with retry support');
             
             return true;
 
         } catch (error) {
             console.error('Failed to initialize PyodideBridge:', error);
+            this.loadingManager.showError('Initialization Failed', error.message);
             this.showError(`Failed to initialize simulation environment: ${error.message}`);
             return false;
         }
@@ -220,11 +483,38 @@ class ChartManager {
         this.voltageChart = null;
         this.reactiveChart = null;
         this.maxDataPoints = 200; // 10 seconds at 50ms
+        this.retryManager = new RetryManager();
     }
 
-    initialize() {
-        this.initializeVoltageChart();
-        this.initializeReactiveChart();
+    async initialize() {
+        // Initialize voltage chart with retry logic
+        const voltageResult = await this.retryManager.withRetry(async (attempt) => {
+            console.log(`Initializing voltage chart (attempt ${attempt})...`);
+            
+            // Check if Chart.js is available
+            if (typeof Chart === 'undefined') {
+                throw new Error('Chart.js library not available - CDN script may not be loaded yet');
+            }
+            
+            return this.initializeVoltageChart();
+        }, RetryManager.getConfig('dependency-load'));
+
+        if (!voltageResult.success) {
+            throw new Error(`Failed to initialize voltage chart after ${voltageResult.attempts} attempts: ${voltageResult.error.message}`);
+        }
+
+        // Initialize reactive chart with retry logic
+        const reactiveResult = await this.retryManager.withRetry(async (attempt) => {
+            console.log(`Initializing reactive chart (attempt ${attempt})...`);
+            return this.initializeReactiveChart();
+        }, RetryManager.getConfig('initialization'));
+
+        if (!reactiveResult.success) {
+            throw new Error(`Failed to initialize reactive chart after ${reactiveResult.attempts} attempts: ${reactiveResult.error.message}`);
+        }
+
+        console.log('Chart Manager initialized successfully with retry support');
+        return true;
     }
 
     initializeVoltageChart() {
@@ -616,7 +906,9 @@ class VoltageExerciseApp {
             }
 
             // Initialize charts
-            this.chartManager.initialize();
+            this.bridge.loadingManager.setStep('step-charts', 'active', 'Initializing charts...', 'Setting up real-time visualization');
+            await this.chartManager.initialize();
+            this.bridge.loadingManager.setStep('step-charts', 'completed');
 
             // Initialize simulation controller
             this.simulationController = new SimulationController(this.bridge, this.chartManager);
@@ -627,9 +919,14 @@ class VoltageExerciseApp {
             // Initialize UI values
             this.initializeUI();
 
-            // Hide loading overlay and show application
-            document.getElementById('loading-overlay').style.display = 'none';
-            document.getElementById('app-container').style.display = 'block';
+            // Complete loading process
+            this.bridge.loadingManager.complete();
+            
+            // Short delay to show completion, then hide loading overlay
+            setTimeout(() => {
+                document.getElementById('loading-overlay').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+            }, 800);
 
             this.isInitialized = true;
             console.log('Voltage Tuning Exercise initialized successfully');
@@ -641,6 +938,37 @@ class VoltageExerciseApp {
 
         } catch (error) {
             console.error('Application initialization error:', error);
+            
+            // Enhanced error recovery with specific guidance
+            let errorDetail = '';
+            let recoveryGuidance = 'Please refresh the page to try again.';
+            
+            if (error.message.includes('loadPyodide')) {
+                errorDetail = 'CDN script loading issue. This often resolves automatically.';
+                recoveryGuidance = 'Please refresh the page. If the problem persists, check your internet connection.';
+            } else if (error.message.includes('Chart.js')) {
+                errorDetail = 'Chart visualization library loading issue.';
+                recoveryGuidance = 'Please refresh the page. Charts are essential for the simulation display.';
+            } else if (error.message.includes('NumPy')) {
+                errorDetail = 'Scientific computing library download issue.';
+                recoveryGuidance = 'Please refresh the page. This is a larger download (~8MB) and may take longer on slow connections.';
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                errorDetail = 'Network connectivity issue detected.';
+                recoveryGuidance = 'Please check your internet connection and refresh the page. Corporate networks may have restrictions on CDN access.';
+            } else {
+                errorDetail = error.message;
+            }
+            
+            // Show comprehensive error information
+            this.bridge.loadingManager.showError(
+                'Initialization Failed', 
+                `${errorDetail}<br><br>${recoveryGuidance}<br><br>
+                 <em>If problems persist:</em><br>
+                 • Try opening in a private/incognito browser window<br>
+                 • Disable browser extensions temporarily<br>
+                 • Contact IT support for corporate network issues`
+            );
+            
             this.bridge.showError(`Application initialization failed: ${error.message}`);
             return false;
         }
@@ -794,15 +1122,53 @@ class VoltageExerciseApp {
     }
 }
 
-// Initialize application when DOM is loaded
+// Initialize application when DOM is loaded with auto-retry
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM loaded, initializing Voltage Tuning Exercise...');
     
     const app = new VoltageExerciseApp();
-    const success = await app.initialize();
+    let retryCount = 0;
+    const maxRetries = 2; // Total of 3 attempts (initial + 2 retries)
+    
+    const attemptInitialization = async () => {
+        try {
+            const success = await app.initialize();
+            if (success) {
+                console.log('Application initialized successfully');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error(`Initialization attempt ${retryCount + 1} failed:`, error);
+            return false;
+        }
+    };
+    
+    // Initial attempt
+    let success = await attemptInitialization();
+    
+    // Retry logic for race condition failures
+    while (!success && retryCount < maxRetries) {
+        retryCount++;
+        console.log(`Auto-retry ${retryCount}/${maxRetries} in 2 seconds...`);
+        
+        // Update loading status to show auto-retry
+        const statusElement = document.getElementById('loading-status');
+        if (statusElement) {
+            statusElement.textContent = `Auto-retry ${retryCount}/${maxRetries} - Race condition detected`;
+        }
+        
+        // Wait 2 seconds before retry
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Create new app instance for clean retry
+        const newApp = new VoltageExerciseApp();
+        success = await attemptInitialization.call({ initialize: () => newApp.initialize() });
+    }
     
     if (!success) {
-        console.error('Failed to initialize application');
+        console.error(`Failed to initialize application after ${retryCount + 1} attempts`);
+        // Final error state is already handled by the app's error handling
     }
 });
 

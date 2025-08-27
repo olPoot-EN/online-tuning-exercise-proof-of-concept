@@ -1,0 +1,44 @@
+# Development files
+*.pyc
+__pycache__/
+.DS_Store
+.vscode/
+.idea/
+
+# Build outputs
+dist/
+build/
+*.min.html
+*.obfuscated.*
+
+# Testing artifacts
+test_results/
+coverage/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Environment files
+.env
+.env.local
+
+# Node modules (if any development tools needed)
+node_modules/
+
+# Python virtual environments
+venv/
+env/
+.venv/
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini

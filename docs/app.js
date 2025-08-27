@@ -1064,6 +1064,29 @@ class VoltageExerciseApp {
         
         // Initialize form values from Python simulation config
         this.initializeParameterValues();
+
+        // Set dynamic version number based on current timestamp
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hour = String(now.getHours()).padStart(2, '0');
+        const minute = String(now.getMinutes()).padStart(2, '0');
+        const versionNumber = `v${year}.${month}${day}.${hour}${minute}`;
+
+        // Update version in header and status panel
+        const headerVersion = document.getElementById('header-version');
+        const buildVersion = document.getElementById('build-version');
+        
+        if (headerVersion) {
+            headerVersion.textContent = versionNumber;
+        }
+        
+        if (buildVersion) {
+            buildVersion.textContent = versionNumber;
+        }
+
+        console.log(`Application version: ${versionNumber}`);
     }
     
     initializeParameterValues() {

@@ -497,6 +497,14 @@ class ChartManager {
         this.currentReactiveCenter = 0; // Tracks current center point
         this.centerTrackingSpeed = 0.1; // How fast center moves toward target (0.1 = 10% per update)
         
+        // Asymmetric scaling speeds for different behaviors
+        this.scaleExpandSpeed = 0.3; // Fast expansion to show new peaks (30% per update)
+        this.scaleContractSpeed = 0.05; // Slow contraction to avoid rapid zoom-in (5% per update)
+        
+        // Current scale tracking
+        this.currentReactiveSpan = 0.1; // Tracks current span size
+        this.currentVoltageSpan = 0.1; // Tracks voltage span size
+        
         // Scale holding (expand-only mode)
         this.holdScaling = false;
         this.heldVoltageScale = { min: null, max: null };
@@ -715,11 +723,20 @@ class ChartManager {
         
         // Set minimum span for stability (avoid constant zooming)
         const minSpan = 0.05;
-        const span = Math.max(dataSpan * 1.2, minSpan); // 20% margin
+        const targetSpan = Math.max(dataSpan * 1.2, minSpan); // 20% margin
         
-        // Calculate proposed new scale using smoothed center
-        let newMin = this.currentReactiveCenter - span;
-        let newMax = this.currentReactiveCenter + span;
+        // Asymmetric span tracking - fast expand, slow contract
+        if (targetSpan > this.currentReactiveSpan) {
+            // Expanding - use fast speed to show new peaks quickly
+            this.currentReactiveSpan += (targetSpan - this.currentReactiveSpan) * this.scaleExpandSpeed;
+        } else {
+            // Contracting - use slow speed to avoid jarring zoom-in
+            this.currentReactiveSpan += (targetSpan - this.currentReactiveSpan) * this.scaleContractSpeed;
+        }
+        
+        // Calculate proposed new scale using smoothed center and span
+        let newMin = this.currentReactiveCenter - this.currentReactiveSpan;
+        let newMax = this.currentReactiveCenter + this.currentReactiveSpan;
         
         // Apply hold scaling logic if enabled
         if (this.holdScaling) {
@@ -747,7 +764,8 @@ class ChartManager {
         yScale.max = newMax;
         
         const holdStatus = this.holdScaling ? ' (HOLD)' : '';
-        console.log(`Reactive Power Scale${holdStatus}: Target=${targetCenter.toFixed(4)}, Current=${this.currentReactiveCenter.toFixed(4)}, Range=[${yScale.min.toFixed(4)}, ${yScale.max.toFixed(4)}]`);
+        const behavior = targetSpan > this.currentReactiveSpan ? 'EXPAND' : 'CONTRACT';
+        console.log(`Reactive Power Scale${holdStatus}: ${behavior} Target=${targetCenter.toFixed(4)}, Current=${this.currentReactiveCenter.toFixed(4)}, Span=${this.currentReactiveSpan.toFixed(4)}, Range=[${yScale.min.toFixed(4)}, ${yScale.max.toFixed(4)}]`);
     }
 
     updateVoltageScale() {
@@ -761,11 +779,20 @@ class ChartManager {
         // Set minimum and maximum spans for reasonable bounds
         const minSpan = 0.02; // Minimum 0.02 pu range (2%)
         const maxSpan = 0.3;  // Maximum 0.3 pu range (30%) 
-        const span = Math.max(Math.min(dataSpan * 1.5, maxSpan), minSpan); // 50% margin, with bounds
+        const targetSpan = Math.max(Math.min(dataSpan * 1.5, maxSpan), minSpan); // 50% margin, with bounds
         
-        // Keep within reasonable voltage bounds
-        let newMin = Math.max(center - span/2, 0.7);  // Never below 0.7 pu
-        let newMax = Math.min(center + span/2, 1.3);  // Never above 1.3 pu
+        // Asymmetric span tracking for voltage - fast expand, slow contract
+        if (targetSpan > this.currentVoltageSpan) {
+            // Expanding - use fast speed to show new voltage excursions quickly
+            this.currentVoltageSpan += (targetSpan - this.currentVoltageSpan) * this.scaleExpandSpeed;
+        } else {
+            // Contracting - use slow speed to avoid jarring voltage zoom-in
+            this.currentVoltageSpan += (targetSpan - this.currentVoltageSpan) * this.scaleContractSpeed;
+        }
+        
+        // Keep within reasonable voltage bounds using smoothed span
+        let newMin = Math.max(center - this.currentVoltageSpan/2, 0.7);  // Never below 0.7 pu
+        let newMax = Math.min(center + this.currentVoltageSpan/2, 1.3);  // Never above 1.3 pu
         
         // Ensure minimum span is maintained even with bounds
         if (newMax - newMin < minSpan) {
@@ -800,7 +827,8 @@ class ChartManager {
         yScale.max = newMax;
         
         const holdStatus = this.holdScaling ? ' (HOLD)' : '';
-        console.log(`Voltage Scale${holdStatus}: Range=[${newMin.toFixed(4)}, ${newMax.toFixed(4)}], DataSpan=${dataSpan.toFixed(4)}`);
+        const behavior = targetSpan > this.currentVoltageSpan ? 'EXPAND' : 'CONTRACT';
+        console.log(`Voltage Scale${holdStatus}: ${behavior} Span=${this.currentVoltageSpan.toFixed(4)}, Range=[${newMin.toFixed(4)}, ${newMax.toFixed(4)}]`);
     }
 
     updateCharts(data) {
@@ -924,8 +952,10 @@ class ChartManager {
         this.reactivePowerHistory = [];
         this.scaleUpdateCounter = 0;
         
-        // Reset center tracking
+        // Reset center tracking and span tracking
         this.currentReactiveCenter = 0;
+        this.currentReactiveSpan = 0.1;
+        this.currentVoltageSpan = 0.1;
         
         console.log('Charts reset with autoscaling history cleared');
     }
@@ -961,8 +991,10 @@ class ChartManager {
         this.heldVoltageScale = { min: null, max: null };
         this.heldReactiveScale = { min: null, max: null };
         
-        // Reset center tracking
+        // Reset center tracking and span tracking
         this.currentReactiveCenter = 0;
+        this.currentReactiveSpan = 0.1;
+        this.currentVoltageSpan = 0.1;
         
         console.log('Chart scales reset to defaults');
     }

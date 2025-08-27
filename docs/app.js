@@ -488,9 +488,14 @@ class ChartManager {
         // Autoscaling parameters
         this.reactivePowerHistory = [];
         this.voltageHistory = [];
-        this.movingAverageWindow = 50; // ~2.5 seconds at 50ms
+        this.movingAverageWindow = 50; // ~2.5 seconds at 50ms for range calculation
+        this.centerWindow = 100; // ~5 seconds at 50ms for center calculation (longer = more stable)
         this.scaleUpdateThreshold = 10; // Update scale every N data points
         this.scaleUpdateCounter = 0;
+        
+        // Gradual center tracking for smoother transitions
+        this.currentReactiveCenter = 0; // Tracks current center point
+        this.centerTrackingSpeed = 0.1; // How fast center moves toward target (0.1 = 10% per update)
         
         // Scale holding (expand-only mode)
         this.holdScaling = false;
@@ -698,20 +703,23 @@ class ChartManager {
     updateReactivePowerScale() {
         if (!this.reactiveChart || this.reactivePowerHistory.length < 10) return;
 
-        // Calculate moving average center point
-        const movingCenter = this.calculateMovingAverage(this.reactivePowerHistory, this.movingAverageWindow);
+        // Calculate target center point using longer window for stability
+        const targetCenter = this.calculateMovingAverage(this.reactivePowerHistory, this.centerWindow);
         
-        // Calculate current data range
+        // Gradually move current center toward target center for smooth transitions
+        this.currentReactiveCenter += (targetCenter - this.currentReactiveCenter) * this.centerTrackingSpeed;
+        
+        // Calculate current data range for span calculation (shorter window for responsiveness)
         const range = this.calculateDataRange(this.reactivePowerHistory, this.movingAverageWindow);
-        const dataSpan = Math.max(Math.abs(range.max - movingCenter), Math.abs(range.min - movingCenter));
+        const dataSpan = Math.max(Math.abs(range.max - this.currentReactiveCenter), Math.abs(range.min - this.currentReactiveCenter));
         
         // Set minimum span for stability (avoid constant zooming)
         const minSpan = 0.05;
         const span = Math.max(dataSpan * 1.2, minSpan); // 20% margin
         
-        // Calculate proposed new scale
-        let newMin = movingCenter - span;
-        let newMax = movingCenter + span;
+        // Calculate proposed new scale using smoothed center
+        let newMin = this.currentReactiveCenter - span;
+        let newMax = this.currentReactiveCenter + span;
         
         // Apply hold scaling logic if enabled
         if (this.holdScaling) {
@@ -739,7 +747,7 @@ class ChartManager {
         yScale.max = newMax;
         
         const holdStatus = this.holdScaling ? ' (HOLD)' : '';
-        console.log(`Reactive Power Scale${holdStatus}: Center=${movingCenter.toFixed(4)}, Range=[${yScale.min.toFixed(4)}, ${yScale.max.toFixed(4)}]`);
+        console.log(`Reactive Power Scale${holdStatus}: Target=${targetCenter.toFixed(4)}, Current=${this.currentReactiveCenter.toFixed(4)}, Range=[${yScale.min.toFixed(4)}, ${yScale.max.toFixed(4)}]`);
     }
 
     updateVoltageScale() {
@@ -916,6 +924,9 @@ class ChartManager {
         this.reactivePowerHistory = [];
         this.scaleUpdateCounter = 0;
         
+        // Reset center tracking
+        this.currentReactiveCenter = 0;
+        
         console.log('Charts reset with autoscaling history cleared');
     }
 
@@ -949,6 +960,9 @@ class ChartManager {
         // Clear held scales
         this.heldVoltageScale = { min: null, max: null };
         this.heldReactiveScale = { min: null, max: null };
+        
+        // Reset center tracking
+        this.currentReactiveCenter = 0;
         
         console.log('Chart scales reset to defaults');
     }

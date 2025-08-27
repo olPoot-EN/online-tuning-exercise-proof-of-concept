@@ -60,7 +60,7 @@ body {
         "controls"
         "charts"
         "status";
-    gap: 2rem;
+    gap: 1rem;
 }
 
 @media (min-width: 1200px) {
@@ -78,7 +78,7 @@ body {
     background: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: var(--shadow);
 }
 
@@ -210,7 +210,7 @@ body {
     background: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: var(--shadow);
 }
 
@@ -242,7 +242,7 @@ body {
     background: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: var(--shadow);
 }
 

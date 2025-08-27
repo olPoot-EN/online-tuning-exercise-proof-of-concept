@@ -110,6 +110,24 @@
                 </div>
 
                 <div class="control-group">
+                    <h3>Chart Settings</h3>
+                    <div class="config-item" style="align-items: center;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="hold-scaling" style="margin-right: 0.5rem; transform: scale(1.2);">
+                            Hold Scaling (Expand Only)
+                        </label>
+                        <small style="color: var(--text-muted); font-size: 0.85em; margin-top: 0.25rem; display: block;">
+                            Scales expand to show growing signals but don't zoom back in
+                        </small>
+                    </div>
+                    <div class="config-item">
+                        <button id="reset-scaling" style="padding: 0.5rem 1rem; background: var(--secondary-color); color: white; border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem;">
+                            Reset Chart Scales
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
                     <h3>Simulation Control</h3>
                     <div class="simulation-controls" style="display: flex; justify-content: space-between; gap: 10px;">
                         <button id="start-simulation" style="flex-grow: 1; padding: 0.75rem; background: var(--success-color, #27ae60); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 1rem;">Start</button>

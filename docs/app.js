@@ -491,6 +491,11 @@ class ChartManager {
         this.movingAverageWindow = 50; // ~2.5 seconds at 50ms
         this.scaleUpdateThreshold = 10; // Update scale every N data points
         this.scaleUpdateCounter = 0;
+        
+        // Scale holding (expand-only mode)
+        this.holdScaling = false;
+        this.heldVoltageScale = { min: null, max: null };
+        this.heldReactiveScale = { min: null, max: null };
     }
 
     async initialize() {
@@ -704,12 +709,37 @@ class ChartManager {
         const minSpan = 0.05;
         const span = Math.max(dataSpan * 1.2, minSpan); // 20% margin
         
-        // Update chart scale centered on moving average
-        const yScale = this.reactiveChart.options.scales.y;
-        yScale.min = movingCenter - span;
-        yScale.max = movingCenter + span;
+        // Calculate proposed new scale
+        let newMin = movingCenter - span;
+        let newMax = movingCenter + span;
         
-        console.log(`Reactive Power Scale: Center=${movingCenter.toFixed(4)}, Range=[${yScale.min.toFixed(4)}, ${yScale.max.toFixed(4)}]`);
+        // Apply hold scaling logic if enabled
+        if (this.holdScaling) {
+            const currentMin = this.reactiveChart.options.scales.y.min;
+            const currentMax = this.reactiveChart.options.scales.y.max;
+            
+            // Initialize held scale if not set
+            if (this.heldReactiveScale.min === null) {
+                this.heldReactiveScale.min = currentMin;
+                this.heldReactiveScale.max = currentMax;
+            }
+            
+            // Only expand the scale, never contract
+            newMin = Math.min(newMin, this.heldReactiveScale.min);
+            newMax = Math.max(newMax, this.heldReactiveScale.max);
+            
+            // Update held scale
+            this.heldReactiveScale.min = newMin;
+            this.heldReactiveScale.max = newMax;
+        }
+        
+        // Update chart scale
+        const yScale = this.reactiveChart.options.scales.y;
+        yScale.min = newMin;
+        yScale.max = newMax;
+        
+        const holdStatus = this.holdScaling ? ' (HOLD)' : '';
+        console.log(`Reactive Power Scale${holdStatus}: Center=${movingCenter.toFixed(4)}, Range=[${yScale.min.toFixed(4)}, ${yScale.max.toFixed(4)}]`);
     }
 
     updateVoltageScale() {
@@ -726,22 +756,43 @@ class ChartManager {
         const span = Math.max(Math.min(dataSpan * 1.5, maxSpan), minSpan); // 50% margin, with bounds
         
         // Keep within reasonable voltage bounds
-        let min = Math.max(center - span/2, 0.7);  // Never below 0.7 pu
-        let max = Math.min(center + span/2, 1.3);  // Never above 1.3 pu
+        let newMin = Math.max(center - span/2, 0.7);  // Never below 0.7 pu
+        let newMax = Math.min(center + span/2, 1.3);  // Never above 1.3 pu
         
         // Ensure minimum span is maintained even with bounds
-        if (max - min < minSpan) {
-            const midPoint = (min + max) / 2;
-            min = midPoint - minSpan/2;
-            max = midPoint + minSpan/2;
+        if (newMax - newMin < minSpan) {
+            const midPoint = (newMin + newMax) / 2;
+            newMin = midPoint - minSpan/2;
+            newMax = midPoint + minSpan/2;
+        }
+        
+        // Apply hold scaling logic if enabled
+        if (this.holdScaling) {
+            const currentMin = this.voltageChart.options.scales.y.min;
+            const currentMax = this.voltageChart.options.scales.y.max;
+            
+            // Initialize held scale if not set
+            if (this.heldVoltageScale.min === null) {
+                this.heldVoltageScale.min = currentMin;
+                this.heldVoltageScale.max = currentMax;
+            }
+            
+            // Only expand the scale, never contract
+            newMin = Math.min(newMin, this.heldVoltageScale.min);
+            newMax = Math.max(newMax, this.heldVoltageScale.max);
+            
+            // Update held scale
+            this.heldVoltageScale.min = newMin;
+            this.heldVoltageScale.max = newMax;
         }
         
         // Update chart scale
         const yScale = this.voltageChart.options.scales.y;
-        yScale.min = min;
-        yScale.max = max;
+        yScale.min = newMin;
+        yScale.max = newMax;
         
-        console.log(`Voltage Scale: Range=[${min.toFixed(4)}, ${max.toFixed(4)}], DataSpan=${dataSpan.toFixed(4)}`);
+        const holdStatus = this.holdScaling ? ' (HOLD)' : '';
+        console.log(`Voltage Scale${holdStatus}: Range=[${newMin.toFixed(4)}, ${newMax.toFixed(4)}], DataSpan=${dataSpan.toFixed(4)}`);
     }
 
     updateCharts(data) {
@@ -866,6 +917,40 @@ class ChartManager {
         this.scaleUpdateCounter = 0;
         
         console.log('Charts reset with autoscaling history cleared');
+    }
+
+    // Scale holding control methods
+    setHoldScaling(enabled) {
+        this.holdScaling = enabled;
+        
+        if (!enabled) {
+            // Clear held scales when disabling
+            this.heldVoltageScale = { min: null, max: null };
+            this.heldReactiveScale = { min: null, max: null };
+        }
+        
+        console.log(`Scale holding ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    }
+
+    resetScales() {
+        // Reset to default scales
+        if (this.voltageChart) {
+            this.voltageChart.options.scales.y.min = 0.95;
+            this.voltageChart.options.scales.y.max = 1.05;
+            this.voltageChart.update('none');
+        }
+
+        if (this.reactiveChart) {
+            this.reactiveChart.options.scales.y.min = -0.1;
+            this.reactiveChart.options.scales.y.max = 0.1;
+            this.reactiveChart.update('none');
+        }
+
+        // Clear held scales
+        this.heldVoltageScale = { min: null, max: null };
+        this.heldReactiveScale = { min: null, max: null };
+        
+        console.log('Chart scales reset to defaults');
     }
 }
 
@@ -1177,6 +1262,27 @@ class VoltageExerciseApp {
         if (resetButton) {
             resetButton.addEventListener('click', () => {
                 this.simulationController.resetSimulation();
+            });
+        }
+
+        // Chart control handlers
+        const holdScalingCheckbox = document.getElementById('hold-scaling');
+        if (holdScalingCheckbox) {
+            holdScalingCheckbox.addEventListener('change', () => {
+                this.chartManager.setHoldScaling(holdScalingCheckbox.checked);
+            });
+        }
+
+        const resetScalingButton = document.getElementById('reset-scaling');
+        if (resetScalingButton) {
+            resetScalingButton.addEventListener('click', () => {
+                this.chartManager.resetScales();
+                
+                // Also uncheck the hold scaling checkbox if it's enabled
+                if (holdScalingCheckbox && holdScalingCheckbox.checked) {
+                    holdScalingCheckbox.checked = false;
+                    this.chartManager.setHoldScaling(false);
+                }
             });
         }
 

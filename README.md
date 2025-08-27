@@ -1,10 +1,10 @@
-# Reactive Capability Exercise
+# Voltage Tuning Exercise
 
-A browser-based power system simulation tool for training industry professionals on reactive power control and voltage regulation.
+A browser-based power system simulation tool for training industry professionals on voltage control and system tuning.
 
 ## Overview
 
-This project migrates a Python/tkinter-based reactive power simulation to a modern web application using Pyodide (Python in WebAssembly). The tool provides real-time interactive simulation of generator reactive capability and voltage control systems.
+This project migrates a Python/tkinter-based voltage tuning simulation to a modern web application using Pyodide (Python in WebAssembly). The tool provides real-time interactive simulation of voltage control systems and power system tuning.
 
 ## Features
 
@@ -17,7 +17,7 @@ This project migrates a Python/tkinter-based reactive power simulation to a mode
 ## Quick Start
 
 ### For End Users
-1. Download the `reactive-capability-exercise.html` file
+1. Download the `voltage-tuning-exercise.html` file
 2. Double-click to open in Microsoft Edge or any modern browser
 3. Use the voltage reference controls to interact with the simulation
 
@@ -43,7 +43,7 @@ This project migrates a Python/tkinter-based reactive power simulation to a mode
 ├── CLAUDE.md                           # Development documentation
 ├── TECHNICAL_ARCHITECTURE.md           # Technical architecture
 ├── original code/                      # Original Python implementation
-│   ├── reactive.py                     # Main application
+│   ├── voltage_tuning.py               # Main application
 │   └── NewtonRaphson.py               # Power flow solver
 ├── development/                        # Development files (to be created)
 ├── dist/                              # Built applications (to be created)
@@ -81,18 +81,13 @@ This project migrates a Python/tkinter-based reactive power simulation to a mode
 
 ## Contributing
 
-This is an internal project for power industry training. Development is managed through Claude Code with specific workflows documented in `CLAUDE.md`.
+This is an internal project for power industry training. 
 
 ## License
 
 Internal use only. This software is developed for specific training applications in the power industry.
 
-## Support
-
-For technical issues or questions, please refer to the troubleshooting section in `CLAUDE.md` or contact the development team.
-
 ---
 
 **Version**: 1.0.0-dev  
 **Last Updated**: [Date]  
-**Maintained By**: Claude Code Development Team

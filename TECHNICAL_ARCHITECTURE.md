@@ -1,6 +1,6 @@
-# Reactive Capability Exercise - Technical Architecture
+# Voltage Tuning Exercise - Technical Architecture
 
-This document defines the technical implementation approach for migrating the Python/tkinter reactive power simulation to a browser-based Pyodide application.
+This document defines the technical implementation approach for migrating the Python/tkinter voltage tuning simulation to a browser-based Pyodide application.
 
 ## Architecture Overview
 
@@ -65,7 +65,7 @@ This document defines the technical implementation approach for migrating the Py
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reactive Capability Exercise</title>
+    <title>Voltage Tuning Exercise</title>
     <!-- Embedded CSS styles -->
     <style>/* CSS content embedded here */</style>
 </head>
@@ -187,7 +187,7 @@ class PyodideBridge {
         
         // Load embedded Python code
         this.pyodide.runPython(EMBEDDED_NEWTON_RAPHSON);
-        this.pyodide.runPython(EMBEDDED_REACTIVE_CONTROL);
+        this.pyodide.runPython(EMBEDDED_VOLTAGE_CONTROL);
         
         // Get Python function references
         this.newtonRaphson = this.pyodide.globals.get('GenericNewtonRaphson');
@@ -268,7 +268,7 @@ def pretty_print_vector(vector):
 
 #### Control System Logic (Ported)
 ```python
-# embedded_reactive_control.py
+# embedded_voltage_control.py
 import numpy as np
 import random
 
@@ -614,7 +614,7 @@ class SecurityManager {
         }
         
         // Check localStorage for admin flag
-        const adminFlag = localStorage.getItem('reactive_admin');
+        const adminFlag = localStorage.getItem('voltage_admin');
         if (adminFlag === this.config.adminKey) {
             return true;
         }
@@ -939,7 +939,7 @@ class DeploymentBuilder {
         this.writeOutputFile(optimized);
         
         return {
-            filename: `reactive-capability-exercise-v${this.version}.html`,
+            filename: `voltage-tuning-exercise-v${this.version}.html`,
             size: this.getFileSize(optimized),
             checksum: this.generateChecksum(optimized)
         };
@@ -969,7 +969,7 @@ class DeploymentBuilder {
 }
 ```
 
-This technical architecture provides the detailed implementation blueprint for the Pyodide-based reactive capability exercise. The modular design ensures maintainability while the single-file distribution meets the deployment requirements.
+This technical architecture provides the detailed implementation blueprint for the Pyodide-based voltage tuning exercise. The modular design ensures maintainability while the single-file distribution meets the deployment requirements.
 
 ---
 

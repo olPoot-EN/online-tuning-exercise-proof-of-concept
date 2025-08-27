@@ -1,6 +1,6 @@
-# Reactive Capability Exercise - Development Documentation
+# Voltage Tuning Exercise - Development Documentation
 
-This document contains development workflows, commands, and procedures for the Reactive Capability Exercise browser migration project.
+This document contains development workflows, commands, and procedures for the Voltage Tuning Exercise browser migration project.
 
 ## Project Overview
 
@@ -11,9 +11,9 @@ This document contains development workflows, commands, and procedures for the R
 ## Repository Management
 
 ### GitHub Setup
-- **Repository**: Private repository at `olPoot-EN/reactive-capability-exercise`
-- **Repository URL**: `https://github.com/olPoot-EN/reactive-capability-exercise`
-- **SSH Clone**: `git@github.com:olPoot-EN/reactive-capability-exercise.git`
+- **Repository**: Private repository at `olPoot-EN/voltage-tuning-exercise`
+- **Repository URL**: `https://github.com/olPoot-EN/voltage-tuning-exercise`
+- **SSH Clone**: `git@github.com:olPoot-EN/voltage-tuning-exercise.git`
 - **Visibility**: PRIVATE - This is proprietary work and must not be public
 - **Session Reference**: Repository information logged for Claude Code session continuity
 - **Branch Strategy**: 
@@ -34,7 +34,7 @@ This document contains development workflows, commands, and procedures for the R
 ```bash
 # Initial setup (completed)
 git init
-git remote add origin git@github.com:olPoot-EN/reactive-capability-exercise.git
+git remote add origin git@github.com:olPoot-EN/voltage-tuning-exercise.git
 git checkout -b development
 
 # Regular development cycle - COMMIT AFTER COMPLETING ITERATIONS
@@ -93,11 +93,11 @@ python validate_outputs.py --scenarios all
 
 ```bash
 # JavaScript linting (if separate JS files used during development)
-npx eslint reactive-app.js
+npx eslint voltage-app.js
 
 # Python code validation (for embedded Python modules)
 python -m py_compile embedded_newton_raphson.py
-python -m py_compile embedded_reactive_control.py
+python -m py_compile embedded_voltage_control.py
 
 # HTML validation
 # Open HTML file in browser developer tools for validation
@@ -108,11 +108,11 @@ python -m py_compile embedded_reactive_control.py
 ```bash
 # Development version (readable code)
 python build_dev.py
-# Output: reactive-capability-exercise-dev.html
+# Output: voltage-tuning-exercise-dev.html
 
 # Production version (obfuscated)
 python build_production.py
-# Output: reactive-capability-exercise.html
+# Output: voltage-tuning-exercise.html
 ```
 
 ### Security Implementation
@@ -131,12 +131,12 @@ python test_expiration.py --test-date 2024-05-01
 ## File Structure
 
 ```
-/Reactive Capability Exercise/
+/Voltage Tuning Exercise/
 ├── PRD.md                              # Product Requirements Document
 ├── CLAUDE.md                           # This file - Development documentation
 ├── TECHNICAL_ARCHITECTURE.md           # Technical implementation details
 ├── original code/                      # Original Python implementation
-│   ├── reactive.py                     # Main application
+│   ├── voltage_tuning.py               # Main application
 │   └── NewtonRaphson.py               # Power flow solver
 ├── development/                        # Development files
 │   ├── test_suite.py                  # Mathematical accuracy tests
@@ -145,10 +145,10 @@ python test_expiration.py --test-date 2024-05-01
 │   ├── build_production.py            # Production build script
 │   └── embedded_modules/               # Python modules for embedding
 │       ├── newton_raphson.py          # Ported Newton-Raphson solver
-│       └── reactive_control.py        # Ported control logic
+│       └── voltage_control.py          # Ported control logic
 ├── dist/                              # Built applications
-│   ├── reactive-capability-exercise-dev.html    # Development version
-│   └── reactive-capability-exercise.html        # Production version
+│   ├── voltage-tuning-exercise-dev.html         # Development version
+│   └── voltage-tuning-exercise.html             # Production version
 └── docs/                              # Additional documentation
     └── user_guide.md                  # End-user documentation
 ```

@@ -1,6 +1,6 @@
-# Reactive Capability Exercise - Development Todo List
+# Voltage Tuning Exercise - Development Todo List
 
-This document contains the detailed task breakdown for implementing the browser-based reactive capability exercise.
+This document contains the detailed task breakdown for implementing the browser-based voltage tuning exercise.
 
 ## Phase 1: Foundation Setup ✅ COMPLETE
 

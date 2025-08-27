@@ -1,8 +1,8 @@
-# Reactive Capability Exercise - Product Requirements Document
+# Voltage Tuning Exercise - Product Requirements Document
 
 ## Executive Summary
 
-This document outlines the requirements for migrating the existing Python/tkinter-based Reactive Capability Exercise simulation to a browser-based solution using Pyodide. The primary goal is to eliminate installation dependencies and IT restrictions that prevent effective distribution to power industry training participants.
+This document outlines the requirements for migrating the existing Python/tkinter-based Voltage Tuning Exercise simulation to a browser-based solution using Pyodide. The primary goal is to eliminate installation dependencies and IT restrictions that prevent effective distribution to power industry training participants.
 
 **Project Scope**: Two-phase approach with immediate focus on local HTML file distribution, designed with future server-hosted deployment in mind.
 
@@ -207,7 +207,7 @@ This document outlines the requirements for migrating the existing Python/tkinte
 
 ## Approval and Change Management
 
-This PRD defines the complete scope and requirements for the Reactive Capability Exercise browser migration project. Any changes to these requirements must be explicitly approved and documented as amendments to this document.
+This PRD defines the complete scope and requirements for the Voltage Tuning Exercise browser migration project. Any changes to these requirements must be explicitly approved and documented as amendments to this document.
 
 **Document Version**: 1.0  
 **Last Updated**: [Date]  

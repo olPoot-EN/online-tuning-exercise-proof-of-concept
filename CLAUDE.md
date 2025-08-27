@@ -11,7 +11,8 @@ This document contains development workflows, commands, and procedures for the R
 ## Repository Management
 
 ### GitHub Setup
-- **Repository**: To be created on davidparry's GitHub account
+- **Repository**: Private repository at `olPoot-EN/reactive-capability-exercise`
+- **Visibility**: PRIVATE - This is proprietary work and must not be public
 - **Branch Strategy**: 
   - `main`: Production-ready releases
   - `development`: Active development branch
@@ -19,14 +20,23 @@ This document contains development workflows, commands, and procedures for the R
 - **Commit Management**: All commits managed through Claude Code
 - **Documentation**: All project documentation tracked in repository
 
+### Git Commit Guidelines
+- **IMPORTANT**: Do NOT include AI attribution comments in any commits, code, or comments
+- **Prohibited Content**: Never include phrases like "Generated with Claude Code" or "Co-Authored-By: Claude" 
+- **Commit Timing**: Always commit and push after completing code iterations, not during development
+- **Commit Messages**: Clear, descriptive messages focusing on what was accomplished
+- **Code Comments**: Only functional comments that serve the codebase, no attribution or generation notes
+
 ### Development Workflow
 ```bash
-# Initial setup (Claude will handle)
+# Initial setup (completed)
 git init
-git remote add origin [repository-url]
+git remote add origin git@github.com:olPoot-EN/reactive-capability-exercise.git
 git checkout -b development
 
-# Regular development cycle
+# Regular development cycle - COMMIT AFTER COMPLETING ITERATIONS
+# 1. Complete development work (code, test, debug)
+# 2. Only then add and commit finished work
 git add .
 git commit -m "descriptive commit message"
 git push origin development
@@ -37,6 +47,12 @@ git merge development
 git tag -a v1.0 -m "Phase 1 Release"
 git push origin main --tags
 ```
+
+### Development Best Practices
+- **Complete Before Commit**: Finish development iterations completely before staging commits
+- **No Mid-Development Commits**: Avoid committing incomplete or broken code
+- **Clean Code Only**: Only commit tested, working code iterations
+- **Repository Privacy**: Always verify repository remains private for proprietary work
 
 ## Development Environment
 

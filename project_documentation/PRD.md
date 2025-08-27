@@ -25,9 +25,9 @@ This document outlines the requirements for migrating the existing Python/tkinte
 ### User Requirements
 
 #### Distribution and Access
-- **Single File Distribution**: Complete application contained in one HTML file
-- **SharePoint Compatible**: File size and format suitable for corporate SharePoint download
-- **Zero Installation**: Double-click HTML file opens functional application in browser
+- **Web-Based Distribution**: Modern web application with standard file structure
+- **SharePoint Compatible**: File structure suitable for corporate SharePoint hosting
+- **Zero Installation**: Open HTML file in browser to access functional application
 - **Offline Capable**: Full functionality without internet connection after initial load
 
 #### User Interface
@@ -43,9 +43,9 @@ This document outlines the requirements for migrating the existing Python/tkinte
 
 #### Runtime Environment
 - **Core Technology**: Pyodide (Python runtime in WebAssembly)
-- **Frontend**: HTML/CSS/JavaScript with Chart.js for plotting
-- **Architecture**: Python backend for calculations, JavaScript frontend for UI
-- **File Size**: 10-15MB acceptable (includes Pyodide runtime)
+- **Frontend**: Modular HTML/CSS/JavaScript with Chart.js for plotting
+- **Architecture**: Python backend for calculations, JavaScript frontend for UI, separate file structure for maintainability
+- **Distribution Size**: Optimized for web delivery and SharePoint hosting
 
 #### Performance Specifications
 - **Startup Time**: 

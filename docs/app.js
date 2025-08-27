@@ -1,17 +1,11 @@
-/**
- * Voltage Tuning Exercise - Main JavaScript Application
- * 
- * This implements the browser-based version of the voltage tuning
- * training simulation using Pyodide for Python execution and Chart.js for visualization.
- */
-
+// Security Manager
 class SecurityManager {
     constructor() {
         this.config = {
             startDate: "2024-02-01",
             expirationDays: 90,
             bypassEnabled: true,
-            adminKey: "voltage_admin_2024"
+            adminKey: "reactive_admin_2024"
         };
     }
 
@@ -54,14 +48,15 @@ class SecurityManager {
         }
 
         // Check localStorage
-        if (localStorage.getItem('voltage_admin') === this.config.adminKey) {
+        if (localStorage.getItem('reactive_admin') === this.config.adminKey) {
             return true;
         }
 
         // Check for development environment indicators
         if (window.location.hostname === 'localhost' || 
             window.location.hostname === '127.0.0.1' ||
-            window.location.protocol === 'file:') {
+            window.location.protocol === 'file:' ||
+            window.location.hostname.endsWith('.github.io')) {
             return true;
         }
 
@@ -89,11 +84,11 @@ class SecurityManager {
     }
 }
 
+// Pyodide Bridge
 class PyodideBridge {
     constructor() {
         this.pyodide = null;
         this.isInitialized = false;
-        this.pythonGlobals = {};
         this.simulationFunctions = {};
     }
 
@@ -135,33 +130,23 @@ class PyodideBridge {
     }
 
     async loadEmbeddedPythonCode() {
-        // Load Newton-Raphson solver
-        const newtonRaphsonCode = await this.loadPythonModule('newton_raphson');
-        this.pyodide.runPython(newtonRaphsonCode);
-        console.log('Newton-Raphson solver loaded');
-
-        // Load voltage control system
-        const voltageControlCode = await this.loadPythonModule('voltage_control');
-        this.pyodide.runPython(voltageControlCode);
-        console.log('Voltage control system loaded');
-    }
-
-    async loadPythonModule(moduleName) {
-        // In development, load from separate files
-        // In production, this will be embedded in the HTML
         try {
-            const response = await fetch(`/development/embedded_modules/${moduleName}.py`);
-            if (!response.ok) {
-                throw new Error(`Failed to load ${moduleName}: ${response.statusText}`);
+            // Load Newton-Raphson solver from embedded script
+            const newtonScript = document.getElementById('embedded-newton-raphson');
+            if (newtonScript) {
+                this.pyodide.runPython(newtonScript.textContent);
+                console.log('Newton-Raphson solver loaded from embedded script');
             }
-            return await response.text();
+
+            // Load voltage control system from embedded script  
+            const voltageScript = document.getElementById('embedded-voltage-control');
+            if (voltageScript) {
+                this.pyodide.runPython(voltageScript.textContent);
+                console.log('Voltage control system loaded from embedded script');
+            }
         } catch (error) {
-            // Fallback to embedded content in script tags
-            const scriptElement = document.getElementById(`embedded-${moduleName.replace('_', '-')}`);
-            if (scriptElement && scriptElement.textContent.trim()) {
-                return scriptElement.textContent;
-            }
-            throw new Error(`Could not load Python module: ${moduleName}`);
+            console.error('Failed to load Python modules:', error);
+            throw new Error(`Failed to load Python modules: ${error.message}`);
         }
     }
 
@@ -195,8 +180,22 @@ class PyodideBridge {
         }
 
         try {
-            const result = func(...args);
-            return result.toJs({dict_converter: Object.fromEntries});
+            // Convert JavaScript objects to Python dictionaries
+            const pythonArgs = args.map(arg => {
+                if (typeof arg === 'object' && arg !== null && !Array.isArray(arg)) {
+                    // Convert JavaScript object to Python dict
+                    return this.pyodide.toPy(arg);
+                }
+                return arg;
+            });
+            
+            const result = func(...pythonArgs);
+            
+            // Convert Python result back to JavaScript
+            if (result && typeof result.toJs === 'function') {
+                return result.toJs({dict_converter: Object.fromEntries});
+            }
+            return result;
         } catch (error) {
             console.error(`Error calling Python function ${functionName}:`, error);
             throw error;
@@ -215,6 +214,7 @@ class PyodideBridge {
     }
 }
 
+// Chart Manager
 class ChartManager {
     constructor() {
         this.voltageChart = null;
@@ -262,15 +262,10 @@ class ChartManager {
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.dataset.label}: ${context.parsed.y.toFixed(4)} pu`;
-                            }
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'line',
                         }
                     }
                 },
@@ -281,9 +276,11 @@ class ChartManager {
                             display: true,
                             text: 'Time (seconds)'
                         },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 0, 0, 0.1)'
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return value.toFixed(1);
+                            },
+                            stepSize: 1.0
                         }
                     },
                     y: {
@@ -292,16 +289,8 @@ class ChartManager {
                             text: 'Voltage (pu)'
                         },
                         min: 0.85,
-                        max: 1.15,
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        }
+                        max: 1.15
                     }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
                 },
                 animation: {
                     duration: 0 // Disable animation for real-time updates
@@ -345,15 +334,10 @@ class ChartManager {
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.dataset.label}: ${context.parsed.y.toFixed(4)} pu`;
-                            }
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'line',
                         }
                     }
                 },
@@ -364,9 +348,11 @@ class ChartManager {
                             display: true,
                             text: 'Time (seconds)'
                         },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 0, 0, 0.1)'
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return value.toFixed(1);
+                            },
+                            stepSize: 1.0
                         }
                     },
                     y: {
@@ -374,15 +360,9 @@ class ChartManager {
                             display: true,
                             text: 'Reactive Power (pu)'
                         },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        }
+                        suggestedMin: -0.1,
+                        suggestedMax: 0.1
                     }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
                 },
                 animation: {
                     duration: 0
@@ -416,26 +396,35 @@ class ChartManager {
             return;
         }
 
+        // Round time values to prevent floating point precision issues
+        const roundedTimeData = timeData.map(t => Math.round(t * 100) / 100);
+
         // Update time labels
-        chart.data.labels = timeData;
+        chart.data.labels = roundedTimeData;
 
         // Update datasets
         datasets.forEach((dataset, index) => {
             if (chart.data.datasets[index] && dataset.data) {
-                chart.data.datasets[index].data = timeData.map((time, i) => ({
+                chart.data.datasets[index].data = roundedTimeData.map((time, i) => ({
                     x: time,
                     y: dataset.data[i] || 0
                 }));
             }
         });
 
-        // Set x-axis range for 10-second rolling window
-        const latestTime = timeData[timeData.length - 1] || 0;
-        const minTime = Math.max(0, latestTime - 10);
-        const maxTime = Math.max(10, latestTime);
+        // Set x-axis range for 10-second rolling window with fixed precision
+        const latestTime = roundedTimeData[roundedTimeData.length - 1] || 0;
+        const minTime = Math.max(0, Math.round((latestTime - 10) * 100) / 100);
+        const maxTime = Math.max(10, Math.round((latestTime + 0.1) * 100) / 100);
 
-        chart.options.scales.x.min = minTime;
-        chart.options.scales.x.max = maxTime;
+        // Only update axis range if there's a significant change to prevent jarring rescaling
+        const currentMin = chart.options.scales.x.min || 0;
+        const currentMax = chart.options.scales.x.max || 10;
+        
+        if (Math.abs(minTime - currentMin) > 0.05 || Math.abs(maxTime - currentMax) > 0.05) {
+            chart.options.scales.x.min = minTime;
+            chart.options.scales.x.max = maxTime;
+        }
 
         // Update chart without animation
         chart.update('none');
@@ -460,6 +449,7 @@ class ChartManager {
     }
 }
 
+// Simulation Controller
 class SimulationController {
     constructor(bridge, chartManager) {
         this.bridge = bridge;
@@ -474,47 +464,44 @@ class SimulationController {
         if (this.isRunning || !this.bridge.isInitialized) {
             return;
         }
-
         console.log('Starting simulation...');
         this.isRunning = true;
         this.updateSimulationStatus('Running');
-
-        this.simulationTimer = setInterval(() => {
-            this.step();
-        }, this.updateInterval);
+        this.step(); // Initial call to start the loop
     }
 
     stop() {
         if (!this.isRunning) {
             return;
         }
-
         console.log('Stopping simulation...');
         this.isRunning = false;
         this.updateSimulationStatus('Stopped');
-
         if (this.simulationTimer) {
-            clearInterval(this.simulationTimer);
+            clearTimeout(this.simulationTimer); // Clear any pending step
             this.simulationTimer = null;
         }
     }
 
     step() {
-        try {
-            // Execute Python simulation step
-            const result = this.bridge.callPythonFunction('simulate_step', this.voltageReference);
-            
-            // Update charts
-            this.chartManager.updateCharts(result);
-            
-            // Update status display
-            this.updateStatusDisplay(result);
+        // This function is now the entire loop
+        if (!this.isRunning) {
+            return; // Exit condition for the loop
+        }
 
+        try {
+            const result = this.bridge.callPythonFunction('simulate_step', this.voltageReference);
+            this.chartManager.updateCharts(result);
+            this.updateStatusDisplay(result);
         } catch (error) {
             console.error('Simulation step error:', error);
-            this.stop();
+            this.stop(); // Stop on error
             this.bridge.showError(`Simulation error: ${error.message}`);
+            return; // Don't schedule the next step
         }
+
+        // Schedule the next execution of step
+        this.simulationTimer = setTimeout(() => this.step(), this.updateInterval);
     }
 
     setVoltageReference(value) {
@@ -561,7 +548,9 @@ class SimulationController {
                 reactive_actual: 0.0,
                 converged: true
             });
-            console.log('Simulation reset');
+            console.log('Simulation reset. Restarting...');
+            // Restart the simulation after a short delay
+            setTimeout(() => this.start(), 100);
         } catch (error) {
             console.error('Reset error:', error);
             this.bridge.showError(`Reset failed: ${error.message}`);
@@ -599,6 +588,7 @@ class SimulationController {
     }
 }
 
+// Main Application
 class VoltageExerciseApp {
     constructor() {
         this.security = new SecurityManager();
@@ -644,12 +634,8 @@ class VoltageExerciseApp {
             this.isInitialized = true;
             console.log('Voltage Tuning Exercise initialized successfully');
 
-            // Auto-start simulation
-            setTimeout(() => {
-                if (this.simulationController) {
-                    this.simulationController.start();
-                }
-            }, 1000);
+            // Application is ready, waiting for user to start simulation.
+            this.simulationController.updateSimulationStatus('Ready');
 
             return true;
 
@@ -699,13 +685,36 @@ class VoltageExerciseApp {
         parameterInputs.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                element.addEventListener('change', () => {
+                // Use 'input' event for immediate response as user types
+                element.addEventListener('input', () => {
+                    console.log(`Parameter ${id} changed to:`, element.value);
                     this.updateSimulationParameters();
                 });
+                // Also listen for 'change' event for when field loses focus
+                element.addEventListener('change', () => {
+                    console.log(`Parameter ${id} final change to:`, element.value);
+                    this.updateSimulationParameters();
+                });
+            } else {
+                console.warn(`Parameter input element not found: ${id}`);
             }
         });
 
-        // Reset button handler
+        // Simulation control button handlers
+        const startButton = document.getElementById('start-simulation');
+        if (startButton) {
+            startButton.addEventListener('click', () => {
+                this.simulationController.start();
+            });
+        }
+
+        const stopButton = document.getElementById('stop-simulation');
+        if (stopButton) {
+            stopButton.addEventListener('click', () => {
+                this.simulationController.stop();
+            });
+        }
+
         const resetButton = document.getElementById('reset-simulation');
         if (resetButton) {
             resetButton.addEventListener('click', () => {
@@ -724,19 +733,64 @@ class VoltageExerciseApp {
     initializeUI() {
         // Set initial voltage reference
         this.simulationController.setVoltageReference(100);
+        
+        // Initialize form values from Python simulation config
+        this.initializeParameterValues();
+    }
+    
+    initializeParameterValues() {
+        try {
+            const config = this.bridge.callPythonFunction('get_simulation_config');
+            console.log('Initial simulation config:', config);
+            
+            // Update form inputs with actual Python values
+            if (config) {
+                document.getElementById('update-rate').value = config.simulation_interval;
+                document.getElementById('noise-level').value = config.noise_level;
+                document.getElementById('system-reactance').value = config.system_reactance;
+                document.getElementById('plant-time-constant').value = config.plant_time_constant;
+                document.getElementById('voltage-kp').value = config.voltage_kp;
+                document.getElementById('voltage-ki').value = config.voltage_ki;
+            }
+        } catch (error) {
+            console.warn('Could not initialize parameter values:', error);
+        }
     }
 
     updateSimulationParameters() {
-        const params = {
-            simulation_interval: parseInt(document.getElementById('update-rate').value),
-            noise_level: parseFloat(document.getElementById('noise-level').value),
-            system_reactance: parseFloat(document.getElementById('system-reactance').value),
-            plant_time_constant: parseFloat(document.getElementById('plant-time-constant').value),
-            voltage_kp: parseFloat(document.getElementById('voltage-kp').value),
-            voltage_ki: parseFloat(document.getElementById('voltage-ki').value)
+        const params = {};
+        
+        const paramConfigs = {
+            simulation_interval: 'update-rate',
+            noise_level: 'noise-level',
+            system_reactance: 'system-reactance',
+            plant_time_constant: 'plant-time-constant',
+            voltage_kp: 'voltage-kp',
+            voltage_ki: 'voltage-ki'
         };
 
-        this.simulationController.updateParameters(params);
+        for (const [key, id] of Object.entries(paramConfigs)) {
+            const element = document.getElementById(id);
+            if (element && element.value) { // Check if value is not empty
+                let value = parseFloat(element.value); // Use let
+                if (!isNaN(value)) { // Check if parsing was successful
+                    
+                    // Enforce a minimum update rate to prevent instability
+                    if (key === 'simulation_interval' && value < 10) {
+                        value = 10; // Clamp to 10ms minimum
+                        element.value = value;
+                    }
+                    
+                    params[key] = value;
+                }
+            }
+        }
+
+        // Only call the update function if there are valid parameters to update
+        if (Object.keys(params).length > 0) {
+            console.log('Updating parameters:', params);
+            this.simulationController.updateParameters(params);
+        }
     }
 }
 

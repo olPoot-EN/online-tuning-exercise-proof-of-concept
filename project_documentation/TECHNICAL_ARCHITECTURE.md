@@ -8,18 +8,20 @@ This document defines the technical implementation approach for migrating the Py
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Single HTML File                         │
+│                   Web Application Structure                 │
 │  ┌─────────────────────────────────────────────────────────┤
 │  │                 Frontend Layer                          │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │  │ HTML5        │  │ CSS3         │  │ JavaScript   │  │
+│  │  │ index.html   │  │ styles.css   │  │ app.js       │  │
 │  │  │ - Structure  │  │ - Styling    │  │ - UI Logic   │  │
-│  │  │ - Controls   │  │ - Animation  │  │ - Chart.js   │  │
+│  │  │ - Layout     │  │ - Animation  │  │ - Chart.js   │  │
+│  │  │ - Controls   │  │ - Responsive │  │ - Events     │  │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘  │
 │  └─────────────────────────────────────────────────────────┤
 │                    Bridge Layer                             │
 │  ┌─────────────────────────────────────────────────────────┤
 │  │          Python-JavaScript Interface                    │
+│  │  - Pyodide bridge for Python execution                 │
 │  │  - Data serialization/deserialization                  │
 │  │  - Event handling and callbacks                        │
 │  │  - Configuration management                             │
@@ -28,9 +30,10 @@ This document defines the technical implementation approach for migrating the Py
 │  ┌─────────────────────────────────────────────────────────┤
 │  │                 Pyodide Runtime                         │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │  │ Newton-      │  │ Control      │  │ NumPy        │  │
-│  │  │ Raphson      │  │ System       │  │ Math         │  │
-│  │  │ Solver       │  │ Logic        │  │ Operations   │  │
+│  │  │newton_raphson│  │voltage_control│  │ NumPy        │  │
+│  │  │   .py        │  │   .py        │  │ Math         │  │
+│  │  │- Power flow  │  │- Simulation  │  │ Operations   │  │
+│  │  │- Solver      │  │- Control     │  │              │  │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘  │
 │  └─────────────────────────────────────────────────────────┘
 └─────────────────────────────────────────────────────────────┘
@@ -39,19 +42,30 @@ This document defines the technical implementation approach for migrating the Py
 ### Technology Stack
 
 **Frontend Technologies**:
-- **HTML5**: Structure and semantic markup
-- **CSS3**: Modern styling, animations, responsive design
-- **Vanilla JavaScript**: UI logic, event handling, no framework dependencies
-- **Chart.js**: Real-time plotting and visualization
+- **HTML5**: Structure and semantic markup (index.html)
+- **CSS3**: Modern styling, animations, responsive design (styles.css)
+- **JavaScript**: UI logic, event handling, Pyodide integration (app.js)
+- **Chart.js**: Real-time plotting and visualization (CDN)
 
 **Backend Technologies**:
-- **Pyodide**: CPython 3.11+ running in WebAssembly
+- **Pyodide**: CPython 3.11+ running in WebAssembly (CDN)
 - **NumPy**: Mathematical operations (via Pyodide)
-- **Custom Python Modules**: Ported Newton-Raphson and control logic
+- **Python Modules**: 
+  - newton_raphson.py: Power flow solver with original structure preserved
+  - voltage_control.py: Simulation engine with global variable approach
 
 **Distribution**:
-- **Single File**: Self-contained HTML with embedded resources
+- **Modular File Structure**: Separate files for maintainability
+- **GitHub Pages**: Hosted from docs/ folder for web access  
 - **CDN Dependencies**: Chart.js and Pyodide loaded from reliable CDNs
+- **Development Structure**: 
+  - docs/index.html: Main application structure
+  - docs/styles.css: Professional styling and responsive design
+  - docs/app.js: Application logic and Pyodide bridge
+  - docs/newton_raphson.py: Power flow calculations (develop here directly)
+  - docs/voltage_control.py: Simulation control system (develop here directly)
+  - docs/test_accuracy.py: Mathematical accuracy testing
+  - docs/quick_test.py: Local development testing
 - **Offline Capable**: Full functionality after initial resource loading
 
 ## Detailed Component Architecture

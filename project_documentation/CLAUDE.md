@@ -15,12 +15,11 @@ This document contains development workflows, commands, and procedures for the V
 - **Repository URL**: `https://github.com/olPoot-EN/voltage-tuning-exercise`
 - **SSH Clone**: `git@github.com:olPoot-EN/voltage-tuning-exercise.git`
 - **Visibility**: PRIVATE - This is proprietary work and must not be public
-- **Session Reference**: Repository information logged for Claude Code session continuity
+- **GitHub Pages**: Hosted directly from `docs/` folder - develop in production
 - **Branch Strategy**: 
-  - `main`: Production-ready releases
-  - `development`: Active development branch
-  - Feature branches: `feature/[feature-name]` for specific implementations
-- **Commit Management**: All commits managed through Claude Code
+  - `main`: Production-ready releases (also development)
+  - Feature branches only if needed for major changes
+- **Development Approach**: Single location development in `docs/` folder
 - **Documentation**: All project documentation tracked in repository
 
 ### Git Commit Guidelines

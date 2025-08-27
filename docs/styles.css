@@ -8,7 +8,7 @@
     --background-color: #f8f9fa;
     --card-background: #ffffff;
     --text-color: #2c3e50;
-    --text-muted: #6c757d;
+    --text-muted: #495057;
     --border-color: #dee2e6;
     --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
@@ -314,7 +314,7 @@ body {
 
 .error-message {
     background: #f8d7da;
-    color: #721c24;
+    color: #58151c;
     border: 1px solid #f5c6cb;
     border-radius: 0.5rem;
     padding: 1rem;

@@ -12,7 +12,10 @@ This document contains development workflows, commands, and procedures for the R
 
 ### GitHub Setup
 - **Repository**: Private repository at `olPoot-EN/reactive-capability-exercise`
+- **Repository URL**: `https://github.com/olPoot-EN/reactive-capability-exercise`
+- **SSH Clone**: `git@github.com:olPoot-EN/reactive-capability-exercise.git`
 - **Visibility**: PRIVATE - This is proprietary work and must not be public
+- **Session Reference**: Repository information logged for Claude Code session continuity
 - **Branch Strategy**: 
   - `main`: Production-ready releases
   - `development`: Active development branch

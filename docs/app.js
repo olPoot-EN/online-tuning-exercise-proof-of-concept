@@ -484,6 +484,13 @@ class ChartManager {
         this.reactiveChart = null;
         this.maxDataPoints = 200; // 10 seconds at 50ms
         this.retryManager = new RetryManager();
+        
+        // Autoscaling parameters
+        this.reactivePowerHistory = [];
+        this.voltageHistory = [];
+        this.movingAverageWindow = 50; // ~2.5 seconds at 50ms
+        this.scaleUpdateThreshold = 10; // Update scale every N data points
+        this.scaleUpdateCounter = 0;
     }
 
     async initialize() {
@@ -578,8 +585,9 @@ class ChartManager {
                             display: true,
                             text: 'Voltage (pu)'
                         },
-                        min: 0.85,
-                        max: 1.15
+                        // Dynamic scaling - will be updated by autoscaling logic
+                        min: 0.95,
+                        max: 1.05
                     }
                 },
                 animation: {
@@ -661,12 +669,116 @@ class ChartManager {
         });
     }
 
+    // Sophisticated autoscaling methods
+    calculateMovingAverage(data, windowSize) {
+        if (data.length === 0) return 0;
+        
+        const startIndex = Math.max(0, data.length - windowSize);
+        const window = data.slice(startIndex);
+        const sum = window.reduce((acc, val) => acc + val, 0);
+        return sum / window.length;
+    }
+
+    calculateDataRange(data, windowSize) {
+        if (data.length === 0) return { min: -0.1, max: 0.1 };
+        
+        const startIndex = Math.max(0, data.length - windowSize);
+        const window = data.slice(startIndex);
+        const min = Math.min(...window);
+        const max = Math.max(...window);
+        
+        return { min, max };
+    }
+
+    updateReactivePowerScale() {
+        if (!this.reactiveChart || this.reactivePowerHistory.length < 10) return;
+
+        // Calculate moving average center point
+        const movingCenter = this.calculateMovingAverage(this.reactivePowerHistory, this.movingAverageWindow);
+        
+        // Calculate current data range
+        const range = this.calculateDataRange(this.reactivePowerHistory, this.movingAverageWindow);
+        const dataSpan = Math.max(Math.abs(range.max - movingCenter), Math.abs(range.min - movingCenter));
+        
+        // Set minimum span for stability (avoid constant zooming)
+        const minSpan = 0.05;
+        const span = Math.max(dataSpan * 1.2, minSpan); // 20% margin
+        
+        // Update chart scale centered on moving average
+        const yScale = this.reactiveChart.options.scales.y;
+        yScale.min = movingCenter - span;
+        yScale.max = movingCenter + span;
+        
+        console.log(`Reactive Power Scale: Center=${movingCenter.toFixed(4)}, Range=[${yScale.min.toFixed(4)}, ${yScale.max.toFixed(4)}]`);
+    }
+
+    updateVoltageScale() {
+        if (!this.voltageChart || this.voltageHistory.length < 10) return;
+
+        // Calculate data range over recent history
+        const range = this.calculateDataRange(this.voltageHistory, this.movingAverageWindow * 2); // Longer window for voltage
+        const center = (range.min + range.max) / 2;
+        const dataSpan = range.max - range.min;
+        
+        // Set minimum and maximum spans for reasonable bounds
+        const minSpan = 0.02; // Minimum 0.02 pu range (2%)
+        const maxSpan = 0.3;  // Maximum 0.3 pu range (30%) 
+        const span = Math.max(Math.min(dataSpan * 1.5, maxSpan), minSpan); // 50% margin, with bounds
+        
+        // Keep within reasonable voltage bounds
+        let min = Math.max(center - span/2, 0.7);  // Never below 0.7 pu
+        let max = Math.min(center + span/2, 1.3);  // Never above 1.3 pu
+        
+        // Ensure minimum span is maintained even with bounds
+        if (max - min < minSpan) {
+            const midPoint = (min + max) / 2;
+            min = midPoint - minSpan/2;
+            max = midPoint + minSpan/2;
+        }
+        
+        // Update chart scale
+        const yScale = this.voltageChart.options.scales.y;
+        yScale.min = min;
+        yScale.max = max;
+        
+        console.log(`Voltage Scale: Range=[${min.toFixed(4)}, ${max.toFixed(4)}], DataSpan=${dataSpan.toFixed(4)}`);
+    }
+
     updateCharts(data) {
         if (!data || !data.data_arrays) {
             return;
         }
 
         const chartData = data.data_arrays;
+        
+        // Collect data for autoscaling (use the latest actual values)
+        if (chartData.voltage_actual && chartData.voltage_actual.length > 0) {
+            const latestVoltage = chartData.voltage_actual[chartData.voltage_actual.length - 1];
+            this.voltageHistory.push(latestVoltage);
+            
+            // Maintain history size
+            if (this.voltageHistory.length > this.maxDataPoints) {
+                this.voltageHistory.shift();
+            }
+        }
+
+        if (chartData.reactive_actual && chartData.reactive_actual.length > 0) {
+            const latestReactive = chartData.reactive_actual[chartData.reactive_actual.length - 1];
+            this.reactivePowerHistory.push(latestReactive);
+            
+            // Maintain history size
+            if (this.reactivePowerHistory.length > this.maxDataPoints) {
+                this.reactivePowerHistory.shift();
+            }
+        }
+
+        // Apply autoscaling periodically (not every update for performance)
+        this.scaleUpdateCounter++;
+        if (this.scaleUpdateCounter >= this.scaleUpdateThreshold) {
+            this.scaleUpdateCounter = 0;
+            this.updateVoltageScale();
+            this.updateReactivePowerScale();
+        }
         
         // Update voltage chart
         this.updateChart(this.voltageChart, chartData.time_values, [
@@ -721,11 +833,17 @@ class ChartManager {
     }
 
     resetCharts() {
+        // Reset chart data
         if (this.voltageChart) {
             this.voltageChart.data.labels = [];
             this.voltageChart.data.datasets.forEach(dataset => {
                 dataset.data = [];
             });
+            
+            // Reset voltage scale to default
+            this.voltageChart.options.scales.y.min = 0.95;
+            this.voltageChart.options.scales.y.max = 1.05;
+            
             this.voltageChart.update('none');
         }
 
@@ -734,8 +852,20 @@ class ChartManager {
             this.reactiveChart.data.datasets.forEach(dataset => {
                 dataset.data = [];
             });
+            
+            // Reset reactive power scale to default
+            this.reactiveChart.options.scales.y.min = -0.1;
+            this.reactiveChart.options.scales.y.max = 0.1;
+            
             this.reactiveChart.update('none');
         }
+
+        // Clear autoscaling history
+        this.voltageHistory = [];
+        this.reactivePowerHistory = [];
+        this.scaleUpdateCounter = 0;
+        
+        console.log('Charts reset with autoscaling history cleared');
     }
 }
 

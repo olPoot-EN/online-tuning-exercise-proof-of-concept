@@ -998,6 +998,28 @@ class ChartManager {
         
         console.log('Chart scales reset to defaults');
     }
+
+    // Autoscaling parameter management
+    setAutoscalingParameters(params) {
+        if (params.scale_expand_speed !== undefined) {
+            this.scaleExpandSpeed = params.scale_expand_speed;
+        }
+        if (params.scale_contract_speed !== undefined) {
+            this.scaleContractSpeed = params.scale_contract_speed;
+        }
+        if (params.center_tracking_speed !== undefined) {
+            this.centerTrackingSpeed = params.center_tracking_speed;
+        }
+        console.log('Autoscaling parameters updated:', this.getAutoscalingParameters());
+    }
+
+    getAutoscalingParameters() {
+        return {
+            scale_expand_speed: this.scaleExpandSpeed,
+            scale_contract_speed: this.scaleContractSpeed,
+            center_tracking_speed: this.centerTrackingSpeed
+        };
+    }
 }
 
 // Simulation Controller
@@ -1268,7 +1290,8 @@ class VoltageExerciseApp {
         // Parameter update handlers
         const parameterInputs = [
             'update-rate', 'noise-level', 'system-reactance', 
-            'plant-time-constant', 'voltage-kp', 'voltage-ki'
+            'plant-time-constant', 'voltage-kp', 'voltage-ki',
+            'scale-expand-speed', 'scale-contract-speed', 'center-tracking-speed' // New autoscaling parameters
         ];
 
         parameterInputs.forEach(id => {
@@ -1385,13 +1408,22 @@ class VoltageExerciseApp {
                 document.getElementById('voltage-kp').value = config.voltage_kp;
                 document.getElementById('voltage-ki').value = config.voltage_ki;
             }
+
+            // Update form inputs with autoscaling parameters
+            const autoscalingConfig = this.chartManager.getAutoscalingParameters();
+            if (autoscalingConfig) {
+                document.getElementById('scale-expand-speed').value = autoscalingConfig.scale_expand_speed;
+                document.getElementById('scale-contract-speed').value = autoscalingConfig.scale_contract_speed;
+                document.getElementById('center-tracking-speed').value = autoscalingConfig.center_tracking_speed;
+            }
         } catch (error) {
             console.warn('Could not initialize parameter values:', error);
         }
     }
 
-    updateSimulationParameters() {
+        updateSimulationParameters() {
         const params = {};
+        const autoscalingParams = {}; // New object for autoscaling parameters
         
         const paramConfigs = {
             simulation_interval: 'update-rate',
@@ -1402,27 +1434,46 @@ class VoltageExerciseApp {
             voltage_ki: 'voltage-ki'
         };
 
+        const autoscalingParamConfigs = { // New configs for autoscaling
+            scale_expand_speed: 'scale-expand-speed',
+            scale_contract_speed: 'scale-contract-speed',
+            center_tracking_speed: 'center-tracking-speed'
+        };
+
+        // Process simulation parameters
         for (const [key, id] of Object.entries(paramConfigs)) {
             const element = document.getElementById(id);
-            if (element && element.value) { // Check if value is not empty
-                let value = parseFloat(element.value); // Use let
-                if (!isNaN(value)) { // Check if parsing was successful
-                    
-                    // Enforce a minimum update rate to prevent instability
+            if (element && element.value) {
+                let value = parseFloat(element.value);
+                if (!isNaN(value)) {
                     if (key === 'simulation_interval' && value < 10) {
-                        value = 10; // Clamp to 10ms minimum
+                        value = 10;
                         element.value = value;
                     }
-                    
                     params[key] = value;
                 }
             }
         }
 
-        // Only call the update function if there are valid parameters to update
+        // Process autoscaling parameters
+        for (const [key, id] of Object.entries(autoscalingParamConfigs)) {
+            const element = document.getElementById(id);
+            if (element && element.value) {
+                let value = parseFloat(element.value);
+                if (!isNaN(value)) {
+                    autoscalingParams[key] = value;
+                }
+            }
+        }
+
         if (Object.keys(params).length > 0) {
-            console.log('Updating parameters:', params);
+            console.log('Updating simulation parameters:', params);
             this.simulationController.updateParameters(params);
+        }
+
+        if (Object.keys(autoscalingParams).length > 0) {
+            console.log('Updating autoscaling parameters:', autoscalingParams);
+            this.chartManager.setAutoscalingParameters(autoscalingParams);
         }
     }
 }

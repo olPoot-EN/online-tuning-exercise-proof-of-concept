@@ -215,8 +215,12 @@ body {
 }
 
 .chart-wrapper {
-    margin-bottom: 1.25rem;
+    margin-bottom: 2rem; /* Changed to 2rem for more separation */
     position: relative;
+    background: var(--card-background); /* Ensure background for shadow */
+    border-radius: 0.5rem; /* Match other cards */
+    box-shadow: var(--shadow); /* Subtle shadow */
+    padding: 1rem; /* Add some padding inside the wrapper */
 }
 
 .chart-wrapper:last-child {

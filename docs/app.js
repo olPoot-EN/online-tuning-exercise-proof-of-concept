@@ -396,25 +396,23 @@ class PyodideBridge {
         try {
             // Load Newton-Raphson solver from separate file
             const newtonResponse = await fetch('newton_raphson.py');
-            if (newtonResponse.ok) {
-                const newtonCode = await newtonResponse.text();
-                this.pyodide.runPython(newtonCode);
-                console.log('Newton-Raphson solver loaded from newton_raphson.py');
-            } else {
-                console.error('Failed to load newton_raphson.py:', newtonResponse.status);
+            if (!newtonResponse.ok) {
                 throw new Error(`Failed to load newton_raphson.py: HTTP ${newtonResponse.status}`);
             }
+            const newtonCode = await newtonResponse.text();
             
             // Load voltage control system from separate file
             const voltageResponse = await fetch('voltage_control.py');
-            if (voltageResponse.ok) {
-                const voltageCode = await voltageResponse.text();
-                this.pyodide.runPython(voltageCode);
-                console.log('Voltage control system loaded from voltage_control.py');
-            } else {
-                console.error('Failed to load voltage_control.py:', voltageResponse.status);
+            if (!voltageResponse.ok) {
                 throw new Error(`Failed to load voltage_control.py: HTTP ${voltageResponse.status}`);
             }
+            const voltageCode = await voltageResponse.text();
+            
+            // Combine both modules and execute them in the same namespace
+            const combinedCode = newtonCode + '\n\n' + voltageCode;
+            this.pyodide.runPython(combinedCode);
+            console.log('Python modules loaded successfully: newton_raphson.py + voltage_control.py');
+            
         } catch (error) {
             console.error('Failed to load Python modules:', error);
             throw new Error(`Failed to load Python modules: ${error.message}`);

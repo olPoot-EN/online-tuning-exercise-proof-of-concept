@@ -408,10 +408,20 @@ class PyodideBridge {
             }
             const voltageCode = await voltageResponse.text();
             
-            // Combine both modules and execute them in the same namespace
-            const combinedCode = newtonCode + '\n\n' + voltageCode;
-            this.pyodide.runPython(combinedCode);
-            console.log('Python modules loaded successfully: newton_raphson.py + voltage_control.py');
+            // Load Newton-Raphson solver first and make it globally available
+            this.pyodide.runPython(`
+# Load Newton-Raphson module
+${newtonCode}
+
+# Make GenericNewtonRaphson available globally for other modules
+import sys
+sys.modules['__main__'].GenericNewtonRaphson = GenericNewtonRaphson
+`);
+            console.log('Newton-Raphson solver loaded and made globally available');
+            
+            // Load voltage control system
+            this.pyodide.runPython(voltageCode);
+            console.log('Voltage control system loaded successfully');
             
         } catch (error) {
             console.error('Failed to load Python modules:', error);

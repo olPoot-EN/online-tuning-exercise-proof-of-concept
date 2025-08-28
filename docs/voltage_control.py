@@ -126,6 +126,9 @@ class SimulationState:
         self.iteration_count = 0
         self.initialize_data()
 
+# Initialize global simulation state
+sim_state = None
+
 try:
     sim_state = SimulationState()
     print("Python simulation state initialized successfully.")

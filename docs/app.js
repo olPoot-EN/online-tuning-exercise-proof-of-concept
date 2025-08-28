@@ -1349,7 +1349,7 @@ class VoltageExerciseApp {
         }
     }
 
-        updateSimulationParameters() {
+    updateSimulationParameters() {
         const params = {};
         
         const paramConfigs = {

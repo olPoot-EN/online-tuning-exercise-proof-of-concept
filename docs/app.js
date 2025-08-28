@@ -394,18 +394,26 @@ class PyodideBridge {
 
     async loadEmbeddedPythonCode() {
         try {
-            // Load Newton-Raphson solver from embedded script
-            const newtonScript = document.getElementById('embedded-newton-raphson');
-            if (newtonScript) {
-                this.pyodide.runPython(newtonScript.textContent);
-                console.log('Newton-Raphson solver loaded from embedded script');
+            // Load Newton-Raphson solver from separate file
+            const newtonResponse = await fetch('newton_raphson.py');
+            if (newtonResponse.ok) {
+                const newtonCode = await newtonResponse.text();
+                this.pyodide.runPython(newtonCode);
+                console.log('Newton-Raphson solver loaded from newton_raphson.py');
+            } else {
+                console.error('Failed to load newton_raphson.py:', newtonResponse.status);
+                throw new Error(`Failed to load newton_raphson.py: HTTP ${newtonResponse.status}`);
             }
-
-            // Load voltage control system from embedded script  
-            const voltageScript = document.getElementById('embedded-voltage-control');
-            if (voltageScript) {
-                this.pyodide.runPython(voltageScript.textContent);
-                console.log('Voltage control system loaded from embedded script');
+            
+            // Load voltage control system from separate file
+            const voltageResponse = await fetch('voltage_control.py');
+            if (voltageResponse.ok) {
+                const voltageCode = await voltageResponse.text();
+                this.pyodide.runPython(voltageCode);
+                console.log('Voltage control system loaded from voltage_control.py');
+            } else {
+                console.error('Failed to load voltage_control.py:', voltageResponse.status);
+                throw new Error(`Failed to load voltage_control.py: HTTP ${voltageResponse.status}`);
             }
         } catch (error) {
             console.error('Failed to load Python modules:', error);
@@ -477,38 +485,17 @@ class PyodideBridge {
     }
 }
 
-// Chart Manager
+
+
+
+// Simple Chart Manager using Chart.js built-in scaling
 class ChartManager {
     constructor() {
         this.voltageChart = null;
         this.reactiveChart = null;
-        this.maxDataPoints = 200; // 10 seconds at 50ms
         this.retryManager = new RetryManager();
         
-        // Autoscaling parameters
-        this.reactivePowerHistory = [];
-        this.voltageHistory = [];
-        this.movingAverageWindow = 50; // ~2.5 seconds at 50ms for range calculation
-        this.centerWindow = 100; // ~5 seconds at 50ms for center calculation (longer = more stable)
-        this.scaleUpdateThreshold = 10; // Update scale every N data points
-        this.scaleUpdateCounter = 0;
-        
-        // Gradual center tracking for smoother transitions
-        this.currentReactiveCenter = 0; // Tracks current center point
-        this.centerTrackingSpeed = 0.1; // How fast center moves toward target (0.1 = 10% per update)
-        
-        // Asymmetric scaling speeds for different behaviors
-        this.scaleExpandSpeed = 0.3; // Fast expansion to show new peaks (30% per update)
-        this.scaleContractSpeed = 0.05; // Slow contraction to avoid rapid zoom-in (5% per update)
-        
-        // Current scale tracking
-        this.currentReactiveSpan = 0.1; // Tracks current span size
-        this.currentVoltageSpan = 0.1; // Tracks voltage span size
-        
-        // Scale holding (expand-only mode)
-        this.holdScaling = false;
-        this.heldVoltageScale = { min: null, max: null };
-        this.heldReactiveScale = { min: null, max: null };
+        console.log('ChartManager initialized with Chart.js built-in scaling');
     }
 
     async initialize() {
@@ -550,7 +537,7 @@ class ChartManager {
             data: {
                 labels: [],
                 datasets: [{
-                    label: 'Voltage Reference',
+                    label: 'Reference',
                     data: [],
                     borderColor: '#e74c3c',
                     backgroundColor: 'rgba(231, 76, 60, 0.1)',
@@ -560,7 +547,7 @@ class ChartManager {
                     pointHoverRadius: 4,
                     borderWidth: 2
                 }, {
-                    label: 'Voltage Actual',
+                    label: 'Actual',
                     data: [],
                     borderColor: '#3498db',
                     backgroundColor: 'rgba(52, 152, 219, 0.1)',
@@ -575,12 +562,33 @@ class ChartManager {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
+                    title: {
+                        display: true,
+                        text: 'Voltage Response',
+                        position: 'top',
+                        align: 'center',
+                        font: {
+                            size: 12, /* Reduced from 14 */
+                            weight: '600'
+                        },
+                        color: '#2c3e50',
+                        padding: {
+                            top: 0,
+                            bottom: 0 /* Remove all title padding */
+                        }
+                    },
                     legend: {
                         display: true,
                         position: 'top',
+                        align: 'end',
                         labels: {
                             usePointStyle: true,
                             pointStyle: 'line',
+                            boxWidth: 15, /* Reduced from 20 */
+                            padding: 4,   /* Minimal legend padding */
+                            font: {
+                                size: 11  /* Smaller legend font */
+                            }
                         }
                     }
                 },
@@ -613,6 +621,7 @@ class ChartManager {
                 }
             }
         });
+        
     }
 
     initializeReactiveChart() {
@@ -623,7 +632,7 @@ class ChartManager {
             data: {
                 labels: [],
                 datasets: [{
-                    label: 'Reactive Reference',
+                    label: 'Reference',
                     data: [],
                     borderColor: '#e74c3c',
                     backgroundColor: 'rgba(231, 76, 60, 0.1)',
@@ -633,7 +642,7 @@ class ChartManager {
                     pointHoverRadius: 4,
                     borderWidth: 2
                 }, {
-                    label: 'Reactive Actual',
+                    label: 'Actual',
                     data: [],
                     borderColor: '#27ae60',
                     backgroundColor: 'rgba(39, 174, 96, 0.1)',
@@ -648,12 +657,33 @@ class ChartManager {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
+                    title: {
+                        display: true,
+                        text: 'Reactive Power Response',
+                        position: 'top',
+                        align: 'center',
+                        font: {
+                            size: 12, /* Reduced from 14 */
+                            weight: '600'
+                        },
+                        color: '#2c3e50',
+                        padding: {
+                            top: 0,
+                            bottom: 0 /* Remove all title padding */
+                        }
+                    },
                     legend: {
                         display: true,
                         position: 'top',
+                        align: 'end',
                         labels: {
                             usePointStyle: true,
                             pointStyle: 'line',
+                            boxWidth: 15, /* Reduced from 20 */
+                            padding: 4,   /* Minimal legend padding */
+                            font: {
+                                size: 11  /* Smaller legend font */
+                            }
                         }
                     }
                 },
@@ -676,8 +706,8 @@ class ChartManager {
                             display: true,
                             text: 'Reactive Power (pu)'
                         },
-                        suggestedMin: -0.1,
-                        suggestedMax: 0.1
+                        min: -0.2,
+                        max: 0.2
                     }
                 },
                 animation: {
@@ -685,6 +715,26 @@ class ChartManager {
                 }
             }
         });
+        
+    }
+    
+    applyInitialChartBounds() {
+        // Set reasonable starting bounds for voltage chart (around 1.0 pu)
+        if (this.voltageChart) {
+            this.voltageChart.options.scales.y.min = 0.9;
+            this.voltageChart.options.scales.y.max = 1.1;
+            console.log('[Voltage] Initial bounds set: [0.9, 1.1]');
+        }
+        
+        // Set reasonable starting bounds for reactive chart (around 0.0 pu)
+        if (this.reactiveChart) {
+            this.reactiveChart.options.scales.y.min = -0.2;
+            this.reactiveChart.options.scales.y.max = 0.2;
+            // Clear suggestedMin/suggestedMax to use explicit min/max
+            delete this.reactiveChart.options.scales.y.suggestedMin;
+            delete this.reactiveChart.options.scales.y.suggestedMax;
+            console.log('[Reactive] Initial bounds set: [-0.2, 0.2]');
+        }
     }
 
     // Sophisticated autoscaling methods
@@ -708,127 +758,40 @@ class ChartManager {
         return { min, max };
     }
 
-    updateReactivePowerScale() {
-        if (!this.reactiveChart || this.reactivePowerHistory.length < 10) return;
-
-        // Calculate target center point using longer window for stability
-        const targetCenter = this.calculateMovingAverage(this.reactivePowerHistory, this.centerWindow);
+    // Clean scaling logic using dedicated engine
+    updateChartScale(chart, tracker, chartName, currentValue) {
+        if (!chart) return;
         
-        // Gradually move current center toward target center for smooth transitions
-        this.currentReactiveCenter += (targetCenter - this.currentReactiveCenter) * this.centerTrackingSpeed;
+        const currentBounds = {
+            min: chart.options.scales.y.min,
+            max: chart.options.scales.y.max
+        };
         
-        // Calculate current data range for span calculation (shorter window for responsiveness)
-        const range = this.calculateDataRange(this.reactivePowerHistory, this.movingAverageWindow);
-        const dataSpan = Math.max(Math.abs(range.max - this.currentReactiveCenter), Math.abs(range.min - this.currentReactiveCenter));
+        console.log(`[${chartName}] Current bounds: [${currentBounds.min.toFixed(3)}, ${currentBounds.max.toFixed(3)}], Value: ${currentValue.toFixed(3)}`);
         
-        // Set minimum span for stability (avoid constant zooming)
-        const minSpan = 0.05;
-        const targetSpan = Math.max(dataSpan * 1.2, minSpan); // 20% margin
+        // Use scaling engine to determine action
+        const decision = this.scalingEngine.calculateScaling(tracker, currentBounds, currentValue);
         
-        // Asymmetric span tracking - fast expand, slow contract
-        if (targetSpan > this.currentReactiveSpan) {
-            // Expanding - use fast speed to show new peaks quickly
-            this.currentReactiveSpan += (targetSpan - this.currentReactiveSpan) * this.scaleExpandSpeed;
+        // Apply scaling decision
+        if (decision.action === 'expand' || decision.action === 'contract') {
+            chart.options.scales.y.min = decision.newBounds.min;
+            chart.options.scales.y.max = decision.newBounds.max;
+            this.visualFeedback.setOutOfRange(chart, false);
+            console.log(`[${chartName}] ${decision.action.toUpperCase()} to [${decision.newBounds.min.toFixed(3)}, ${decision.newBounds.max.toFixed(3)}] - ${decision.reason}`);
+        } else if (decision.action === 'constrain') {
+            this.visualFeedback.setOutOfRange(chart, true);
+            console.log(`[${chartName}] CONSTRAINED - ${decision.reason}`);
         } else {
-            // Contracting - use slow speed to avoid jarring zoom-in
-            this.currentReactiveSpan += (targetSpan - this.currentReactiveSpan) * this.scaleContractSpeed;
+            this.visualFeedback.setOutOfRange(chart, tracker.isOutOfRange);
         }
-        
-        // Calculate proposed new scale using smoothed center and span
-        let newMin = this.currentReactiveCenter - this.currentReactiveSpan;
-        let newMax = this.currentReactiveCenter + this.currentReactiveSpan;
-        
-        // Apply hold scaling logic if enabled
-        if (this.holdScaling) {
-            const currentMin = this.reactiveChart.options.scales.y.min;
-            const currentMax = this.reactiveChart.options.scales.y.max;
-            
-            // Initialize held scale if not set
-            if (this.heldReactiveScale.min === null) {
-                this.heldReactiveScale.min = currentMin;
-                this.heldReactiveScale.max = currentMax;
-            }
-            
-            // Only expand the scale, never contract
-            newMin = Math.min(newMin, this.heldReactiveScale.min);
-            newMax = Math.max(newMax, this.heldReactiveScale.max);
-            
-            // Update held scale
-            this.heldReactiveScale.min = newMin;
-            this.heldReactiveScale.max = newMax;
-        }
-        
-        // Update chart scale
-        const yScale = this.reactiveChart.options.scales.y;
-        yScale.min = newMin;
-        yScale.max = newMax;
-        
-        const holdStatus = this.holdScaling ? ' (HOLD)' : '';
-        const behavior = targetSpan > this.currentReactiveSpan ? 'EXPAND' : 'CONTRACT';
-        console.log(`Reactive Power Scale${holdStatus}: ${behavior} Target=${targetCenter.toFixed(4)}, Current=${this.currentReactiveCenter.toFixed(4)}, Span=${this.currentReactiveSpan.toFixed(4)}, Range=[${yScale.min.toFixed(4)}, ${yScale.max.toFixed(4)}]`);
     }
 
-    updateVoltageScale() {
-        if (!this.voltageChart || this.voltageHistory.length < 10) return;
+    updateReactivePowerScale(currentValue) {
+        this.updateChartScale(this.reactiveChart, this.reactiveTracker, 'Reactive', currentValue);
+    }
 
-        // Calculate data range over recent history
-        const range = this.calculateDataRange(this.voltageHistory, this.movingAverageWindow * 2); // Longer window for voltage
-        const center = (range.min + range.max) / 2;
-        const dataSpan = range.max - range.min;
-        
-        // Set minimum and maximum spans for reasonable bounds
-        const minSpan = 0.02; // Minimum 0.02 pu range (2%)
-        const maxSpan = 0.3;  // Maximum 0.3 pu range (30%) 
-        const targetSpan = Math.max(Math.min(dataSpan * 1.5, maxSpan), minSpan); // 50% margin, with bounds
-        
-        // Asymmetric span tracking for voltage - fast expand, slow contract
-        if (targetSpan > this.currentVoltageSpan) {
-            // Expanding - use fast speed to show new voltage excursions quickly
-            this.currentVoltageSpan += (targetSpan - this.currentVoltageSpan) * this.scaleExpandSpeed;
-        } else {
-            // Contracting - use slow speed to avoid jarring voltage zoom-in
-            this.currentVoltageSpan += (targetSpan - this.currentVoltageSpan) * this.scaleContractSpeed;
-        }
-        
-        // Keep within reasonable voltage bounds using smoothed span
-        let newMin = Math.max(center - this.currentVoltageSpan/2, 0.7);  // Never below 0.7 pu
-        let newMax = Math.min(center + this.currentVoltageSpan/2, 1.3);  // Never above 1.3 pu
-        
-        // Ensure minimum span is maintained even with bounds
-        if (newMax - newMin < minSpan) {
-            const midPoint = (newMin + newMax) / 2;
-            newMin = midPoint - minSpan/2;
-            newMax = midPoint + minSpan/2;
-        }
-        
-        // Apply hold scaling logic if enabled
-        if (this.holdScaling) {
-            const currentMin = this.voltageChart.options.scales.y.min;
-            const currentMax = this.voltageChart.options.scales.y.max;
-            
-            // Initialize held scale if not set
-            if (this.heldVoltageScale.min === null) {
-                this.heldVoltageScale.min = currentMin;
-                this.heldVoltageScale.max = currentMax;
-            }
-            
-            // Only expand the scale, never contract
-            newMin = Math.min(newMin, this.heldVoltageScale.min);
-            newMax = Math.max(newMax, this.heldVoltageScale.max);
-            
-            // Update held scale
-            this.heldVoltageScale.min = newMin;
-            this.heldVoltageScale.max = newMax;
-        }
-        
-        // Update chart scale
-        const yScale = this.voltageChart.options.scales.y;
-        yScale.min = newMin;
-        yScale.max = newMax;
-        
-        const holdStatus = this.holdScaling ? ' (HOLD)' : '';
-        const behavior = targetSpan > this.currentVoltageSpan ? 'EXPAND' : 'CONTRACT';
-        console.log(`Voltage Scale${holdStatus}: ${behavior} Span=${this.currentVoltageSpan.toFixed(4)}, Range=[${newMin.toFixed(4)}, ${newMax.toFixed(4)}]`);
+    updateVoltageScale(currentValue) {
+        this.updateChartScale(this.voltageChart, this.voltageTracker, 'Voltage', currentValue);
     }
 
     updateCharts(data) {
@@ -838,33 +801,15 @@ class ChartManager {
 
         const chartData = data.data_arrays;
         
-        // Collect data for autoscaling (use the latest actual values)
+        // Simple rescaling for out-of-range data
         if (chartData.voltage_actual && chartData.voltage_actual.length > 0) {
             const latestVoltage = chartData.voltage_actual[chartData.voltage_actual.length - 1];
-            this.voltageHistory.push(latestVoltage);
-            
-            // Maintain history size
-            if (this.voltageHistory.length > this.maxDataPoints) {
-                this.voltageHistory.shift();
-            }
+            this.checkAndUpdateScale(this.voltageChart, latestVoltage);
         }
 
         if (chartData.reactive_actual && chartData.reactive_actual.length > 0) {
             const latestReactive = chartData.reactive_actual[chartData.reactive_actual.length - 1];
-            this.reactivePowerHistory.push(latestReactive);
-            
-            // Maintain history size
-            if (this.reactivePowerHistory.length > this.maxDataPoints) {
-                this.reactivePowerHistory.shift();
-            }
-        }
-
-        // Apply autoscaling periodically (not every update for performance)
-        this.scaleUpdateCounter++;
-        if (this.scaleUpdateCounter >= this.scaleUpdateThreshold) {
-            this.scaleUpdateCounter = 0;
-            this.updateVoltageScale();
-            this.updateReactivePowerScale();
+            this.checkAndUpdateScale(this.reactiveChart, latestReactive);
         }
         
         // Update voltage chart
@@ -927,9 +872,6 @@ class ChartManager {
                 dataset.data = [];
             });
             
-            // Reset voltage scale to default
-            this.voltageChart.options.scales.y.min = 0.95;
-            this.voltageChart.options.scales.y.max = 1.05;
             
             this.voltageChart.update('none');
         }
@@ -940,40 +882,14 @@ class ChartManager {
                 dataset.data = [];
             });
             
-            // Reset reactive power scale to default
-            this.reactiveChart.options.scales.y.min = -0.1;
-            this.reactiveChart.options.scales.y.max = 0.1;
             
             this.reactiveChart.update('none');
         }
 
-        // Clear autoscaling history
-        this.voltageHistory = [];
-        this.reactivePowerHistory = [];
-        this.scaleUpdateCounter = 0;
-        
-        // Reset center tracking and span tracking
-        this.currentReactiveCenter = 0;
-        this.currentReactiveSpan = 0.1;
-        this.currentVoltageSpan = 0.1;
-        
-        console.log('Charts reset with autoscaling history cleared');
+        console.log('Charts reset');
     }
 
-    // Scale holding control methods
-    setHoldScaling(enabled) {
-        this.holdScaling = enabled;
-        
-        if (!enabled) {
-            // Clear held scales when disabling
-            this.heldVoltageScale = { min: null, max: null };
-            this.heldReactiveScale = { min: null, max: null };
-        }
-        
-        console.log(`Scale holding ${enabled ? 'ENABLED' : 'DISABLED'}`);
-    }
-
-    resetScales() {
+    resetChartScales() {
         // Reset to default scales
         if (this.voltageChart) {
             this.voltageChart.options.scales.y.min = 0.95;
@@ -982,44 +898,53 @@ class ChartManager {
         }
 
         if (this.reactiveChart) {
-            this.reactiveChart.options.scales.y.min = -0.1;
-            this.reactiveChart.options.scales.y.max = 0.1;
+            this.reactiveChart.options.scales.y.min = -0.2;
+            this.reactiveChart.options.scales.y.max = 0.2;
             this.reactiveChart.update('none');
         }
-
-        // Clear held scales
-        this.heldVoltageScale = { min: null, max: null };
-        this.heldReactiveScale = { min: null, max: null };
-        
-        // Reset center tracking and span tracking
-        this.currentReactiveCenter = 0;
-        this.currentReactiveSpan = 0.1;
-        this.currentVoltageSpan = 0.1;
         
         console.log('Chart scales reset to defaults');
     }
 
-    // Autoscaling parameter management
-    setAutoscalingParameters(params) {
-        if (params.scale_expand_speed !== undefined) {
-            this.scaleExpandSpeed = params.scale_expand_speed;
+    checkAndUpdateScale(chart, currentValue) {
+        if (!chart || !chart.options.scales.y) return;
+        
+        const yScale = chart.options.scales.y;
+        let needsUpdate = false;
+        
+        // Get current bounds (Chart.js will set these automatically if not defined)
+        let currentMin = yScale.min;
+        let currentMax = yScale.max;
+        
+        // If no bounds set, initialize with reasonable defaults
+        if (currentMin === undefined || currentMax === undefined) {
+            if (chart === this.voltageChart) {
+                currentMin = 0.95;
+                currentMax = 1.05;
+            } else {
+                currentMin = -0.2;
+                currentMax = 0.2;
+            }
+            needsUpdate = true;
         }
-        if (params.scale_contract_speed !== undefined) {
-            this.scaleContractSpeed = params.scale_contract_speed;
+        
+        // Check if value is out of range
+        if (currentValue < currentMin) {
+            yScale.min = currentValue - Math.abs(currentValue) * 0.1; // Add 10% margin
+            needsUpdate = true;
         }
-        if (params.center_tracking_speed !== undefined) {
-            this.centerTrackingSpeed = params.center_tracking_speed;
+        
+        if (currentValue > currentMax) {
+            yScale.max = currentValue + Math.abs(currentValue) * 0.1; // Add 10% margin
+            needsUpdate = true;
         }
-        console.log('Autoscaling parameters updated:', this.getAutoscalingParameters());
+        
+        // Update chart if bounds changed
+        if (needsUpdate) {
+            chart.update('none'); // Update without animation for performance
+        }
     }
 
-    getAutoscalingParameters() {
-        return {
-            scale_expand_speed: this.scaleExpandSpeed,
-            scale_contract_speed: this.scaleContractSpeed,
-            center_tracking_speed: this.centerTrackingSpeed
-        };
-    }
 }
 
 // Simulation Controller
@@ -1114,6 +1039,15 @@ class SimulationController {
             this.stop();
             this.bridge.callPythonFunction('reset_simulation');
             this.chartManager.resetCharts();
+            this.chartManager.resetChartScales();
+            
+            // Reset voltage setpoint to 1.0 pu (100%)
+            this.setVoltageReference(100);
+            const voltageSlider = document.getElementById('voltage-slider');
+            if (voltageSlider) {
+                voltageSlider.value = 100;
+            }
+            
             this.updateStatusDisplay({
                 current_time: 0,
                 iteration: 0,
@@ -1290,8 +1224,7 @@ class VoltageExerciseApp {
         // Parameter update handlers
         const parameterInputs = [
             'update-rate', 'noise-level', 'system-reactance', 
-            'plant-time-constant', 'voltage-kp', 'voltage-ki',
-            'scale-expand-speed', 'scale-contract-speed', 'center-tracking-speed' // New autoscaling parameters
+            'plant-time-constant', 'voltage-kp', 'voltage-ki'
         ];
 
         parameterInputs.forEach(id => {
@@ -1334,26 +1267,14 @@ class VoltageExerciseApp {
             });
         }
 
-        // Chart control handlers
-        const holdScalingCheckbox = document.getElementById('hold-scaling');
-        if (holdScalingCheckbox) {
-            holdScalingCheckbox.addEventListener('change', () => {
-                this.chartManager.setHoldScaling(holdScalingCheckbox.checked);
+        const resetScalesButton = document.getElementById('reset-chart-scales');
+        if (resetScalesButton) {
+            resetScalesButton.addEventListener('click', () => {
+                this.chartManager.resetChartScales();
             });
         }
 
-        const resetScalingButton = document.getElementById('reset-scaling');
-        if (resetScalingButton) {
-            resetScalingButton.addEventListener('click', () => {
-                this.chartManager.resetScales();
-                
-                // Also uncheck the hold scaling checkbox if it's enabled
-                if (holdScalingCheckbox && holdScalingCheckbox.checked) {
-                    holdScalingCheckbox.checked = false;
-                    this.chartManager.setHoldScaling(false);
-                }
-            });
-        }
+
 
         // Window event handlers
         window.addEventListener('beforeunload', () => {
@@ -1369,6 +1290,9 @@ class VoltageExerciseApp {
         
         // Initialize form values from Python simulation config
         this.initializeParameterValues();
+
+        // Initialize chart scaling parameter values in UI
+        // This will be handled by the parameter initialization method
 
         // Set dynamic version number based on current timestamp
         const now = new Date();
@@ -1401,21 +1325,25 @@ class VoltageExerciseApp {
             
             // Update form inputs with actual Python values
             if (config) {
-                document.getElementById('update-rate').value = config.simulation_interval;
-                document.getElementById('noise-level').value = config.noise_level;
-                document.getElementById('system-reactance').value = config.system_reactance;
-                document.getElementById('plant-time-constant').value = config.plant_time_constant;
-                document.getElementById('voltage-kp').value = config.voltage_kp;
-                document.getElementById('voltage-ki').value = config.voltage_ki;
+                const updateRateElement = document.getElementById('update-rate');
+                if (updateRateElement) updateRateElement.value = config.simulation_interval;
+
+                const noiseLevelElement = document.getElementById('noise-level');
+                if (noiseLevelElement) noiseLevelElement.value = config.noise_level;
+
+                const systemReactanceElement = document.getElementById('system-reactance');
+                if (systemReactanceElement) systemReactanceElement.value = config.system_reactance;
+
+                const plantTimeConstantElement = document.getElementById('plant-time-constant');
+                if (plantTimeConstantElement) plantTimeConstantElement.value = config.plant_time_constant;
+
+                const voltageKpElement = document.getElementById('voltage-kp');
+                if (voltageKpElement) voltageKpElement.value = config.voltage_kp;
+
+                const voltageKiElement = document.getElementById('voltage-ki');
+                if (voltageKiElement) voltageKiElement.value = config.voltage_ki;
             }
 
-            // Update form inputs with autoscaling parameters
-            const autoscalingConfig = this.chartManager.getAutoscalingParameters();
-            if (autoscalingConfig) {
-                document.getElementById('scale-expand-speed').value = autoscalingConfig.scale_expand_speed;
-                document.getElementById('scale-contract-speed').value = autoscalingConfig.scale_contract_speed;
-                document.getElementById('center-tracking-speed').value = autoscalingConfig.center_tracking_speed;
-            }
         } catch (error) {
             console.warn('Could not initialize parameter values:', error);
         }
@@ -1423,7 +1351,6 @@ class VoltageExerciseApp {
 
         updateSimulationParameters() {
         const params = {};
-        const autoscalingParams = {}; // New object for autoscaling parameters
         
         const paramConfigs = {
             simulation_interval: 'update-rate',
@@ -1434,11 +1361,6 @@ class VoltageExerciseApp {
             voltage_ki: 'voltage-ki'
         };
 
-        const autoscalingParamConfigs = { // New configs for autoscaling
-            scale_expand_speed: 'scale-expand-speed',
-            scale_contract_speed: 'scale-contract-speed',
-            center_tracking_speed: 'center-tracking-speed'
-        };
 
         // Process simulation parameters
         for (const [key, id] of Object.entries(paramConfigs)) {
@@ -1455,26 +1377,12 @@ class VoltageExerciseApp {
             }
         }
 
-        // Process autoscaling parameters
-        for (const [key, id] of Object.entries(autoscalingParamConfigs)) {
-            const element = document.getElementById(id);
-            if (element && element.value) {
-                let value = parseFloat(element.value);
-                if (!isNaN(value)) {
-                    autoscalingParams[key] = value;
-                }
-            }
-        }
 
         if (Object.keys(params).length > 0) {
             console.log('Updating simulation parameters:', params);
             this.simulationController.updateParameters(params);
         }
 
-        if (Object.keys(autoscalingParams).length > 0) {
-            console.log('Updating autoscaling parameters:', autoscalingParams);
-            this.chartManager.setAutoscalingParameters(autoscalingParams);
-        }
     }
 }
 

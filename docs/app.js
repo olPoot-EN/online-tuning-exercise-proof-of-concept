@@ -394,35 +394,19 @@ class PyodideBridge {
 
     async loadEmbeddedPythonCode() {
         try {
-            // Load Newton-Raphson solver from separate file
-            const newtonResponse = await fetch('newton_raphson.py');
-            if (!newtonResponse.ok) {
-                throw new Error(`Failed to load newton_raphson.py: HTTP ${newtonResponse.status}`);
+            // Load Newton-Raphson solver from embedded script
+            const newtonScript = document.getElementById('embedded-newton-raphson');
+            if (newtonScript) {
+                this.pyodide.runPython(newtonScript.textContent);
+                console.log('Newton-Raphson solver loaded from embedded script');
             }
-            const newtonCode = await newtonResponse.text();
-            
-            // Load voltage control system from separate file
-            const voltageResponse = await fetch('voltage_control.py');
-            if (!voltageResponse.ok) {
-                throw new Error(`Failed to load voltage_control.py: HTTP ${voltageResponse.status}`);
-            }
-            const voltageCode = await voltageResponse.text();
-            
-            // Load Newton-Raphson solver first and make it globally available
-            this.pyodide.runPython(`
-# Load Newton-Raphson module
-${newtonCode}
 
-# Make GenericNewtonRaphson available globally for other modules
-import sys
-sys.modules['__main__'].GenericNewtonRaphson = GenericNewtonRaphson
-`);
-            console.log('Newton-Raphson solver loaded and made globally available');
-            
-            // Load voltage control system
-            this.pyodide.runPython(voltageCode);
-            console.log('Voltage control system loaded successfully');
-            
+            // Load voltage control system from embedded script  
+            const voltageScript = document.getElementById('embedded-voltage-control');
+            if (voltageScript) {
+                this.pyodide.runPython(voltageScript.textContent);
+                console.log('Voltage control system loaded from embedded script');
+            }
         } catch (error) {
             console.error('Failed to load Python modules:', error);
             throw new Error(`Failed to load Python modules: ${error.message}`);

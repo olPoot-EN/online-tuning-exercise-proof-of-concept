@@ -47,6 +47,13 @@
     <!-- Main Application -->
     <div id="app-container" class="container" style="display: none;">
         <div class="header">
+            <button id="panel-toggle" class="panel-toggle-btn" title="Toggle control panels">
+                <div class="hamburger-icon">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </button>
             <h1 style="margin: 0;">Voltage Tuning Exercise: <span class="header-description">Real-time Voltage Control and Power Flow Simulation</span></h1>
         </div>
 
@@ -176,7 +183,7 @@
 
                 <!-- System Status Panel -->
                 <div class="status-panel">
-                    <h3 style="color: var(--primary-color); margin-bottom: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; border-bottom: 2px solid var(--secondary-color); padding-bottom: 0.05rem;" onclick="toggleStatusPanel()">
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between;" onclick="toggleStatusPanel()">
                         System Status
                         <span id="status-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
                     </h3>

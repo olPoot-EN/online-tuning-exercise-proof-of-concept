@@ -41,6 +41,10 @@ body {
     margin-bottom: 0.3rem;
     border-radius: 0.5rem;
     box-shadow: var(--shadow-lg);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .header h1 {
@@ -60,6 +64,49 @@ body {
     opacity: 0.9;
 }
 
+/* Panel Toggle Button */
+.panel-toggle-btn {
+    position: absolute;
+    left: 0.8rem;
+    background: transparent;
+    color: white;
+    border: 1px solid #87ceeb;
+    border-radius: 0.3rem;
+    padding: 0.6rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.panel-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #87ceeb;
+    transform: translateY(-1px);
+}
+
+.panel-toggle-btn:active {
+    transform: translateY(0);
+}
+
+/* Custom Hamburger Icon */
+.hamburger-icon {
+    display: flex;
+    flex-direction: column;
+    width: 16px;
+    height: 16px;
+    justify-content: space-between;
+}
+
+.hamburger-icon span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background-color: white;
+    border-radius: 1px;
+}
+
 .main-grid {
     display: grid;
     grid-template-areas: 
@@ -74,6 +121,11 @@ body {
         grid-template-areas: 
             "controls charts";
         align-items: start;
+        transition: grid-template-columns 0.3s ease;
+    }
+    
+    .main-grid.controls-hidden {
+        grid-template-columns: 0 1fr;
     }
     
     .charts-container {
@@ -88,6 +140,12 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+}
+
+.main-grid.controls-hidden .controls-container {
+    opacity: 0;
 }
 
 /* Control Panel */
@@ -279,7 +337,11 @@ body {
 }
 
 .status-panel h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.3rem;
     font-size: 0.9rem;
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 0.05rem;
 }
 
 .status-item {

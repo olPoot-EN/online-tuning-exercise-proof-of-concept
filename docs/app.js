@@ -1253,6 +1253,8 @@ class VoltageExerciseApp {
         this.chartManager = new ChartManager();
         this.simulationController = null;
         this.isInitialized = false;
+        this.controlsPanelVisible = true;
+        this.savedMenuStates = {};
     }
 
     async initialize() {
@@ -1490,6 +1492,14 @@ class VoltageExerciseApp {
             }
         });
 
+        // Panel toggle button handler
+        const panelToggleButton = document.getElementById('panel-toggle');
+        if (panelToggleButton) {
+            panelToggleButton.addEventListener('click', () => {
+                this.toggleControlsPanel();
+            });
+        }
+
         // Window event handlers
         window.addEventListener('beforeunload', () => {
             if (this.simulationController) {
@@ -1598,6 +1608,92 @@ class VoltageExerciseApp {
             this.simulationController.updateParameters(params);
         }
 
+    }
+
+    toggleControlsPanel() {
+        const mainGrid = document.querySelector('.main-grid');
+        
+        if (this.controlsPanelVisible) {
+            // Hide panels - save current states first
+            this.saveMenuStates();
+            mainGrid.classList.add('controls-hidden');
+            this.controlsPanelVisible = false;
+        } else {
+            // Show panels - restore previous states
+            mainGrid.classList.remove('controls-hidden');
+            this.controlsPanelVisible = true;
+            // Small delay to ensure layout is settled before restoring states
+            setTimeout(() => {
+                this.restoreMenuStates();
+            }, 100);
+        }
+
+        // Trigger chart resize after layout change
+        setTimeout(() => {
+            if (this.chartManager && this.chartManager.voltageChart) {
+                this.chartManager.voltageChart.resize();
+            }
+            if (this.chartManager && this.chartManager.reactiveChart) {
+                this.chartManager.reactiveChart.resize();
+            }
+        }, 350); // Wait for CSS transition to complete
+    }
+
+    saveMenuStates() {
+        const menuIds = [
+            'voltage-control-content',
+            'system-parameters-content', 
+            'simulation-control-content',
+            'chart-config-content',
+            'status-content'
+        ];
+
+        menuIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                this.savedMenuStates[id] = !element.classList.contains('collapsed');
+            }
+        });
+    }
+
+    restoreMenuStates() {
+        const menuIds = [
+            'voltage-control-content',
+            'system-parameters-content',
+            'simulation-control-content', 
+            'chart-config-content',
+            'status-content'
+        ];
+
+        const toggleIds = {
+            'voltage-control-content': 'voltage-control-toggle',
+            'system-parameters-content': 'system-parameters-toggle',
+            'simulation-control-content': 'simulation-control-toggle',
+            'chart-config-content': 'chart-config-toggle',
+            'status-content': 'status-toggle'
+        };
+
+        menuIds.forEach(id => {
+            const element = document.getElementById(id);
+            const toggle = document.getElementById(toggleIds[id]);
+            const controlGroup = element?.closest('.control-group, .status-panel');
+            
+            if (element && this.savedMenuStates.hasOwnProperty(id)) {
+                const shouldBeExpanded = this.savedMenuStates[id];
+                
+                if (shouldBeExpanded && element.classList.contains('collapsed')) {
+                    // Expand
+                    element.classList.remove('collapsed');
+                    controlGroup?.classList.remove('content-collapsed');
+                    if (toggle) toggle.innerHTML = '▼';
+                } else if (!shouldBeExpanded && !element.classList.contains('collapsed')) {
+                    // Collapse
+                    element.classList.add('collapsed');
+                    controlGroup?.classList.add('content-collapsed');
+                    if (toggle) toggle.innerHTML = '▶';
+                }
+            }
+        });
     }
 
 }

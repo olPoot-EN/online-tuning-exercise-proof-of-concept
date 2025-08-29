@@ -13,7 +13,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 
 ## Dynamic Simulation / Plotting Parameters
 DELT = 0.020
-NUM_STEPS_PER_UPDATE = 25
+NUM_STEPS_PER_UPDATE = 1
 
 WINDOW_TIME = 30.0
 
@@ -21,7 +21,7 @@ NOISE = 0.0005  # pu
 
 
 ## Power System Parameters
-SYS_XE = 0.25  # pu, on 100 MVA base  (to make adjustable)
+SYS_XE = 0.5  # pu, on 100 MVA base  (to make adjustable)
 
 MPT_X = 0.10  # pu, on 100 MVA base
 MPT_R = MPT_X / 45.0  # assumed X/R ratio of 45
@@ -51,9 +51,9 @@ TPQ_PLANT = 0.25  # seconds, represents delay from PPC command to actual output
 TV_PLANT = 0.20   # seconds, applied to voltage feedback
 
 INV_VFREEZE = False  # boolean for voltage ride-through (VRT) control being active or not, freezes reactive integrator state
-INV_KFACT = 2.0
+INV_KFACT = 8.0
 INV_VRT_BAND = 0.10  # pu (make adjustable)
-INV_VRT_HYST = 0.002  # pu, no need to have this be adjustable in GUI
+INV_VRT_HYST = 0.005  # pu, no need to have this be adjustable in GUI
 
 
 ## PPC Tuning Parameters
@@ -203,6 +203,8 @@ TV_PPC_STORE = VINIT; vpoi_fdbk = VINIT
 TP_PPC_STORE = PINIT; ppoi_fdbk = PINIT
 TQ_PPC_STORE = QINIT; qpoi_fdbk = QINIT
 
+TV_INV_STORE = VINV_INIT; vinv_fdbk = VINV_INIT
+
 KIQ_CMD_STORE = QINV_INIT if VCTRL_KI > 0.0 else 0.0
 if VCTRL_MODE == 1 and VCTRL_FEEDFORWARD: KIQ_CMD_STORE -= QINIT
 
@@ -216,6 +218,7 @@ elif VCTRL_MODE == 1:
 
 KIP_CMD_STORE = PINV_INIT - PINIT if PCTRL_FEEDFORWARD else PINV_INIT
 
+TV_INV_STORE = VINV_INIT
 TP_INV_STORE = PINV_INIT
 TQ_INV_STORE = QINV_INIT
 
@@ -259,9 +262,9 @@ past_solution = None
 
 def animate(i):
     global KIQ_CMD_STORE, KIP_CMD_STORE, TQLAG_CMD_STORE
-    global TP_INV_STORE, TQ_INV_STORE
+    global TV_INV_STORE, TP_INV_STORE, TQ_INV_STORE
     global TV_PPC_STORE, TP_PPC_STORE, TQ_PPC_STORE
-    global vpoi_fdbk, ppoi_fdbk, qpoi_fdbk, qcmd_pre_lag
+    global vpoi_fdbk, ppoi_fdbk, qpoi_fdbk, qcmd_pre_lag, vinv_fdbk
     global Ybus_matrix, past_solution
 
     global INV_VFREEZE
@@ -300,9 +303,13 @@ def animate(i):
         ppoi_prev = ppoi_vals[-1]  #
         qpoi_prev = qpoi_vals[-1]  #
 
+        vinv_prev = vinv_vals[-1]  # feedback is inherently delayed by 1 timestep
+
         DSTATE = (vpoi_prev - vpoi_fdbk) / TVPQ_PPC; TV_PPC_STORE += DSTATE * DELT; vpoi_fdbk = TV_PPC_STORE + DSTATE * DELT / 2.0
         DSTATE = (ppoi_prev - ppoi_fdbk) / TVPQ_PPC; TP_PPC_STORE += DSTATE * DELT; ppoi_fdbk = TP_PPC_STORE + DSTATE * DELT / 2.0
         DSTATE = (qpoi_prev - qpoi_fdbk) / TVPQ_PPC; TQ_PPC_STORE += DSTATE * DELT; qpoi_fdbk = TQ_PPC_STORE + DSTATE * DELT / 2.0
+
+        DSTATE = (vinv_prev - vinv_fdbk) / TV_PLANT; TV_INV_STORE += DSTATE * DELT; vinv_fdbk = TV_INV_STORE + DSTATE * DELT / 2.0
 
         if VCTRL_MODE == 0:  # Standard REPC style of controller model
             v_feedback_with_droop = vpoi_fdbk + qpoi_fdbk * VCTRL_DROOP
@@ -321,8 +328,8 @@ def animate(i):
 
             DSTATE = error * (VCTRL_KI if VCTRL_KI > 0.0 else 0.0)
             if INV_VFREEZE:
-                if vinv_vals[-1] > 1.0 and error > 0.0: DSTATE = 0.0
-                if vinv_vals[-1] < 1.0 and error < 0.0: DSTATE = 0.0
+                if vinv_fdbk > 1.0 and error > 0.0: DSTATE = 0.0
+                if vinv_fdbk < 1.0 and error < 0.0: DSTATE = 0.0
                 pass
             
             KIQ_CMD_STORE += DSTATE * DELT
@@ -385,8 +392,8 @@ def animate(i):
             DSTATE = error * (VCTRL_KI if VCTRL_KI > 0.0 else 0.0)
 
             if INV_VFREEZE:
-                if vinv_vals[-1] > 1.0 and error > 0.0: DSTATE = 0.0
-                if vinv_vals[-1] < 1.0 and error < 0.0: DSTATE = 0.0
+                if vinv_fdbk > 1.0 and error > 0.0: DSTATE = 0.0
+                if vinv_fdbk < 1.0 and error < 0.0: DSTATE = 0.0
                 pass
             
             KIQ_CMD_STORE += DSTATE * DELT
@@ -408,8 +415,8 @@ def animate(i):
         q_last = qinv_vals[-1]
         q_err = Qcmd - q_last
         if INV_VFREEZE:
-            if vinv_vals[-1] > 1.0 and q_err > 0.0: q_err = min((1.0 + INV_VRT_BAND) - vinv_vals[-1], 0.0) * INV_KFACT
-            if vinv_vals[-1] < 1.0 and q_err < 0.0: q_err = max((1.0 - INV_VRT_BAND) - vinv_vals[-1], 0.0) * INV_KFACT
+            if vinv_fdbk > 1.0 and q_err > 0.0: q_err = min((1.0 + INV_VRT_BAND) - vinv_fdbk, 0.0) * INV_KFACT
+            if vinv_fdbk < 1.0 and q_err < 0.0: q_err = max((1.0 - INV_VRT_BAND) - vinv_fdbk, 0.0) * INV_KFACT
             pass
 
         DSTATE = q_err / TPQ_PLANT
@@ -460,10 +467,10 @@ def animate(i):
         vcol_vals.append(abs(Vout[2]))
         vinv_vals.append(abs(Vout[4]))
 
-        if vinv_vals[-1] > (1.0 + INV_VRT_BAND) or vinv_vals[-1] < (1.0 - INV_VRT_BAND):
+        if vinv_fdbk > (1.0 + INV_VRT_BAND) or vinv_fdbk < (1.0 - INV_VRT_BAND):
             INV_VFREEZE = True
             pass
-        elif vinv_vals[-1] > (1.0 - (INV_VRT_BAND - INV_VRT_HYST)) and vinv_vals[-1] < (1.0 + (INV_VRT_BAND - INV_VRT_HYST)):
+        elif vinv_fdbk > (1.0 - (INV_VRT_BAND - INV_VRT_HYST)) and vinv_fdbk < (1.0 + (INV_VRT_BAND - INV_VRT_HYST)):
             INV_VFREEZE = False
             pass
 

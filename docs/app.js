@@ -491,6 +491,13 @@ class ChartManager {
         this.totalChartTime = 15.0;    // Total time window shown (seconds)  
         this.tailBuffer = 0.2;         // Buffer behind oldest data (trailing edge) (seconds)
         
+        // Chart appearance configuration
+        this.lineWidth = 1.5;
+        this.referenceColor = '#e74c3c';
+        this.actualColor = '#3498db';
+        this.referenceLineStyle = 'solid';
+        this.actualLineStyle = 'solid';
+        
         // Calculate actual data storage requirement
         this.calculateDataRequirements();
     }
@@ -543,23 +550,25 @@ class ChartManager {
                 datasets: [{
                     label: 'Reference',
                     data: [],
-                    borderColor: '#e74c3c',
-                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderColor: this.referenceColor,
+                    backgroundColor: this.hexToRgba(this.referenceColor, 0.1),
+                    borderDash: this.getLineDashArray(this.referenceLineStyle),
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
                     pointHoverRadius: 0,
-                    borderWidth: 1.5
+                    borderWidth: this.lineWidth
                 }, {
                     label: 'Actual',
                     data: [],
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderColor: this.actualColor,
+                    backgroundColor: this.hexToRgba(this.actualColor, 0.1),
+                    borderDash: this.getLineDashArray(this.actualLineStyle),
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
                     pointHoverRadius: 0,
-                    borderWidth: 1.5
+                    borderWidth: this.lineWidth
                 }]
             },
             options: {
@@ -713,23 +722,25 @@ class ChartManager {
                 datasets: [{
                     label: 'Reference',
                     data: [],
-                    borderColor: '#e74c3c',
-                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderColor: this.referenceColor,
+                    backgroundColor: this.hexToRgba(this.referenceColor, 0.1),
+                    borderDash: this.getLineDashArray(this.referenceLineStyle),
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
                     pointHoverRadius: 0,
-                    borderWidth: 1.5
+                    borderWidth: this.lineWidth
                 }, {
                     label: 'Actual',
                     data: [],
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderColor: this.actualColor,
+                    backgroundColor: this.hexToRgba(this.actualColor, 0.1),
+                    borderDash: this.getLineDashArray(this.actualLineStyle),
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
                     pointHoverRadius: 0,
-                    borderWidth: 1.5
+                    borderWidth: this.lineWidth
                 }]
             },
             options: {
@@ -935,6 +946,100 @@ class ChartManager {
         this.tailBuffer = parseFloat(value);
         this.calculateDataRequirements();
         this.updateSimulationDataRequirements();
+    }
+
+    setLineWidth(value) {
+        this.lineWidth = value;
+        // Update both charts
+        if (this.voltageChart) {
+            this.voltageChart.data.datasets.forEach(dataset => {
+                dataset.borderWidth = this.lineWidth;
+            });
+            this.voltageChart.update('none');
+        }
+        if (this.reactiveChart) {
+            this.reactiveChart.data.datasets.forEach(dataset => {
+                dataset.borderWidth = this.lineWidth;
+            });
+            this.reactiveChart.update('none');
+        }
+    }
+
+    setReferenceColor(color) {
+        this.referenceColor = color;
+        // Update reference dataset in both charts
+        if (this.voltageChart) {
+            this.voltageChart.data.datasets[0].borderColor = color;
+            this.voltageChart.data.datasets[0].backgroundColor = this.hexToRgba(color, 0.1);
+            this.voltageChart.update('none');
+        }
+        if (this.reactiveChart) {
+            this.reactiveChart.data.datasets[0].borderColor = color;
+            this.reactiveChart.data.datasets[0].backgroundColor = this.hexToRgba(color, 0.1);
+            this.reactiveChart.update('none');
+        }
+    }
+
+    setActualColor(color) {
+        this.actualColor = color;
+        // Update actual dataset in both charts
+        if (this.voltageChart) {
+            this.voltageChart.data.datasets[1].borderColor = color;
+            this.voltageChart.data.datasets[1].backgroundColor = this.hexToRgba(color, 0.1);
+            this.voltageChart.update('none');
+        }
+        if (this.reactiveChart) {
+            this.reactiveChart.data.datasets[1].borderColor = color;
+            this.reactiveChart.data.datasets[1].backgroundColor = this.hexToRgba(color, 0.1);
+            this.reactiveChart.update('none');
+        }
+    }
+
+    hexToRgba(hex, alpha) {
+        // Convert hex color to rgba
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    getLineDashArray(style) {
+        // Convert line style to Chart.js borderDash array
+        switch (style) {
+            case 'dashed': return [10, 5];
+            case 'dotted': return [2, 3];
+            case 'dash-dot': return [10, 5, 2, 5];
+            case 'solid':
+            default: return [];
+        }
+    }
+
+    setReferenceLineStyle(style) {
+        this.referenceLineStyle = style;
+        const dashArray = this.getLineDashArray(style);
+        // Update reference dataset in both charts
+        if (this.voltageChart) {
+            this.voltageChart.data.datasets[0].borderDash = dashArray;
+            this.voltageChart.update('none');
+        }
+        if (this.reactiveChart) {
+            this.reactiveChart.data.datasets[0].borderDash = dashArray;
+            this.reactiveChart.update('none');
+        }
+    }
+
+    setActualLineStyle(style) {
+        this.actualLineStyle = style;
+        const dashArray = this.getLineDashArray(style);
+        // Update actual dataset in both charts
+        if (this.voltageChart) {
+            this.voltageChart.data.datasets[1].borderDash = dashArray;
+            this.voltageChart.update('none');
+        }
+        if (this.reactiveChart) {
+            this.reactiveChart.data.datasets[1].borderDash = dashArray;
+            this.reactiveChart.update('none');
+        }
     }
 
     updateChartTimeWindows() {
@@ -1273,7 +1378,6 @@ class SimulationController {
 
     updateStatusDisplay(data) {
         const updates = {
-            'current-time': data.current_time ? `${data.current_time.toFixed(2)} s` : '0.00 s',
             'iteration-count': data.iteration || '0',
             'power-flow-status': data.converged ? 'Converged' : 'Failed',
             'bus-voltage': data.voltage_actual ? `${data.voltage_actual.toFixed(3)} pu` : '1.000 pu',
@@ -1429,7 +1533,7 @@ class VoltageExerciseApp {
         if (voltageUpLarge) {
             voltageUpLarge.addEventListener('click', () => {
                 const currentValue = parseFloat(voltageSlider.value);
-                const coarseIncrement = parseFloat(coarseAdjust.value) || 2.0;
+                const coarseIncrement = parseFloat(coarseAdjust.value) || 3.0;
                 const newValue = Math.min(110, currentValue + coarseIncrement);
                 voltageSlider.value = newValue;
                 this.simulationController.setVoltageReference(newValue);
@@ -1439,7 +1543,7 @@ class VoltageExerciseApp {
         if (voltageDownLarge) {
             voltageDownLarge.addEventListener('click', () => {
                 const currentValue = parseFloat(voltageSlider.value);
-                const coarseIncrement = parseFloat(coarseAdjust.value) || 2.0;
+                const coarseIncrement = parseFloat(coarseAdjust.value) || 3.0;
                 const newValue = Math.max(90, currentValue - coarseIncrement);
                 voltageSlider.value = newValue;
                 this.simulationController.setVoltageReference(newValue);
@@ -1534,9 +1638,45 @@ class VoltageExerciseApp {
             });
         }
 
-        
+        // Line width configuration
+        const lineWidthInput = document.getElementById('line-width');
+        if (lineWidthInput) {
+            lineWidthInput.addEventListener('input', (e) => {
+                this.chartManager.setLineWidth(parseFloat(e.target.value));
+            });
+        }
 
+        // Reference color configuration
+        const referenceColorInput = document.getElementById('reference-color');
+        if (referenceColorInput) {
+            referenceColorInput.addEventListener('input', (e) => {
+                this.chartManager.setReferenceColor(e.target.value);
+            });
+        }
 
+        // Actual color configuration
+        const actualColorInput = document.getElementById('actual-color');
+        if (actualColorInput) {
+            actualColorInput.addEventListener('input', (e) => {
+                this.chartManager.setActualColor(e.target.value);
+            });
+        }
+
+        // Reference line style configuration
+        const referenceLineStyleSelect = document.getElementById('reference-line-style');
+        if (referenceLineStyleSelect) {
+            referenceLineStyleSelect.addEventListener('change', (e) => {
+                this.chartManager.setReferenceLineStyle(e.target.value);
+            });
+        }
+
+        // Actual line style configuration
+        const actualLineStyleSelect = document.getElementById('actual-line-style');
+        if (actualLineStyleSelect) {
+            actualLineStyleSelect.addEventListener('change', (e) => {
+                this.chartManager.setActualLineStyle(e.target.value);
+            });
+        }
 
         // Keyboard shortcut handlers
         document.addEventListener('keydown', (e) => {
@@ -1560,6 +1700,76 @@ class VoltageExerciseApp {
                     }
                 }
             }
+            
+            // Arrow key voltage adjustment shortcuts
+            if (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight' || 
+                e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault(); // Prevent page scroll
+                
+                const voltageSlider = document.getElementById('voltage-slider');
+                const coarseAdjust = document.getElementById('coarse-adjust');
+                const fineAdjust = document.getElementById('fine-adjust');
+                
+                if (voltageSlider && coarseAdjust && fineAdjust) {
+                    const currentValue = parseFloat(voltageSlider.value);
+                    
+                    // Determine direction (increase or decrease voltage)
+                    const isIncreasing = (e.code === 'ArrowUp' || e.key === 'ArrowUp' || 
+                                         e.code === 'ArrowRight' || e.key === 'ArrowRight');
+                    
+                    // Determine adjustment type
+                    const isCoarseAdjust = (e.code === 'ArrowUp' || e.key === 'ArrowUp' || 
+                                           e.code === 'ArrowDown' || e.key === 'ArrowDown');
+                    
+                    let adjustment, newValue;
+                    
+                    if (isCoarseAdjust) {
+                        // Up/Down arrows: Coarse adjustment
+                        const coarseIncrement = parseFloat(coarseAdjust.value) || 3.0;
+                        adjustment = isIncreasing ? coarseIncrement : -coarseIncrement;
+                        newValue = Math.min(110, Math.max(90, currentValue + adjustment));
+                    } else {
+                        // Left/Right arrows: Fine adjustment
+                        const fineIncrement = parseFloat(fineAdjust.value) || 0.5;
+                        adjustment = isIncreasing ? fineIncrement : -fineIncrement;
+                        newValue = Math.min(110, Math.max(90, currentValue + adjustment));
+                    }
+                    
+                    voltageSlider.value = newValue;
+                    this.simulationController.setVoltageReference(newValue);
+                    
+                    // Update voltage display
+                    const voltageDisplay = document.getElementById('voltage-display');
+                    if (voltageDisplay) {
+                        voltageDisplay.textContent = newValue.toFixed(1);
+                    }
+                }
+            }
+            
+            // Question mark key to show keyboard shortcuts
+            if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+                e.preventDefault();
+                const keyboardShortcutsModal = document.getElementById('keyboard-shortcuts-modal');
+                if (keyboardShortcutsModal) {
+                    keyboardShortcutsModal.style.display = 'block';
+                    keyboardShortcutsModal.style.background = 'rgba(255, 255, 255, 0.7)';
+                    keyboardShortcutsModal.style.backdropFilter = 'blur(8px)';
+                }
+            }
+            
+            // ESC key behavior - close modal first, then toggle sidebar
+            if (e.code === 'Escape' || e.key === 'Escape') {
+                e.preventDefault();
+                const keyboardShortcutsModal = document.getElementById('keyboard-shortcuts-modal');
+                
+                // If modal is open, close it first
+                if (keyboardShortcutsModal && keyboardShortcutsModal.style.display === 'block') {
+                    keyboardShortcutsModal.style.display = 'none';
+                } else {
+                    // Otherwise toggle sidebar
+                    this.toggleControlsPanel();
+                }
+            }
         });
 
         // Panel toggle button handler
@@ -1567,6 +1777,40 @@ class VoltageExerciseApp {
         if (panelToggleButton) {
             panelToggleButton.addEventListener('click', () => {
                 this.toggleControlsPanel();
+            });
+        }
+
+        // Keyboard shortcuts modal handlers
+        const keyboardShortcutsBtn = document.getElementById('keyboard-shortcuts-btn');
+        const keyboardShortcutsModal = document.getElementById('keyboard-shortcuts-modal');
+        const keyboardShortcutsClose = document.getElementById('keyboard-shortcuts-close');
+
+        if (keyboardShortcutsBtn && keyboardShortcutsModal) {
+            keyboardShortcutsBtn.addEventListener('click', () => {
+                console.log('Modal button clicked');
+                keyboardShortcutsModal.style.display = 'block';
+                
+                // Very transparent with minimal blur, dark blue border and text
+                keyboardShortcutsModal.style.setProperty('background', 'rgba(60, 60, 60, 0.5)', 'important');
+                keyboardShortcutsModal.style.setProperty('background-color', 'rgba(60, 60, 60, 0.5)', 'important');
+                keyboardShortcutsModal.style.backdropFilter = 'blur(0.1px)';
+                keyboardShortcutsModal.style.color = '#1e3a8a';
+                keyboardShortcutsModal.style.border = '1px solid #1e3a8a';
+            });
+        }
+
+        if (keyboardShortcutsClose && keyboardShortcutsModal) {
+            keyboardShortcutsClose.addEventListener('click', () => {
+                keyboardShortcutsModal.style.display = 'none';
+            });
+        }
+
+        // Close modal when clicking outside the content
+        if (keyboardShortcutsModal) {
+            keyboardShortcutsModal.addEventListener('click', (e) => {
+                if (e.target === keyboardShortcutsModal) {
+                    keyboardShortcutsModal.style.display = 'none';
+                }
             });
         }
 

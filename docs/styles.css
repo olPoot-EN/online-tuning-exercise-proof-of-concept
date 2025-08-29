@@ -64,31 +64,6 @@ body {
     opacity: 0.9;
 }
 
-/* Panel Toggle Button */
-.panel-toggle-btn {
-    position: absolute;
-    left: 0.8rem;
-    background: transparent;
-    color: white;
-    border: 1px solid #87ceeb;
-    border-radius: 0.3rem;
-    padding: 0.6rem 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.panel-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: #87ceeb;
-    transform: translateY(-1px);
-}
-
-.panel-toggle-btn:active {
-    transform: translateY(0);
-}
 
 /* Custom Hamburger Icon */
 .hamburger-icon {
@@ -105,6 +80,172 @@ body {
     width: 100%;
     background-color: white;
     border-radius: 1px;
+}
+
+/* Header buttons container */
+.header-buttons {
+    position: absolute;
+    left: 0.8rem;
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+/* Update panel toggle button to use navy border */
+.panel-toggle-btn {
+    position: static;
+    background: transparent;
+    color: white;
+    border: 1px solid #1e3a8a;
+    border-radius: 0.3rem;
+    padding: 0.6rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.panel-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #1e3a8a;
+    transform: translateY(-1px);
+}
+
+.panel-toggle-btn:active {
+    transform: translateY(0);
+}
+
+/* Keyboard shortcuts button */
+.keyboard-shortcuts-btn {
+    background: transparent;
+    color: white;
+    border: 1px solid #1e3a8a;
+    border-radius: 0.3rem;
+    padding: 0.6rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.keyboard-shortcuts-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #1e3a8a;
+    transform: translateY(-1px);
+}
+
+.keyboard-shortcuts-btn:active {
+    transform: translateY(0);
+}
+
+.keyboard-icon {
+    font-size: 0.9rem;
+}
+
+/* Keyboard shortcuts modal - Gmail-style semi-transparent floating window */
+.keyboard-shortcuts-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.7) !important;
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    padding: 1.2rem;
+    border-radius: 0.4rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    max-height: 70vh;
+    overflow-y: auto;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.keyboard-shortcuts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3rem;
+}
+
+.keyboard-shortcuts-header h2 {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.keyboard-shortcuts-close {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+}
+
+.keyboard-shortcuts-close:hover {
+    background: var(--border-color);
+}
+
+.shortcuts-section {
+    margin-bottom: 0.8rem;
+}
+
+.shortcuts-section:last-child {
+    margin-bottom: 0;
+}
+
+.shortcuts-section h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+    border-left: 2px solid var(--accent-color);
+    padding-left: 0.4rem;
+    font-weight: 600;
+}
+
+.shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.shortcut-item:last-child {
+    border-bottom: none;
+}
+
+.shortcut-keys {
+    display: flex;
+    gap: 0.2rem;
+    min-width: 80px;
+}
+
+.shortcut-key {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.2rem;
+    font-family: monospace;
+    font-size: 0.8rem;
+    font-weight: bold;
+    min-width: 1.8rem;
+    text-align: center;
+}
+
+.shortcut-description {
+    flex-grow: 1;
+    margin-left: 0.8rem;
+    color: var(--text-color);
+    font-size: 0.9rem;
 }
 
 .main-grid {

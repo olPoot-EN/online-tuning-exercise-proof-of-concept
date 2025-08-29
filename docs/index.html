@@ -489,14 +489,14 @@ import random
 
 class SimulationState:
     def __init__(self):
-        self.DELT = 0.05  # 50ms time step
+        self.DELT = 0.01  # 10ms time step
         self.SYS_XE = 0.05  # System reactance, pu
         self.TQ_PLANT = 0.25  # Plant time constant, seconds
         self.VCTRL_KP = 10.0  # Voltage controller proportional gain
-        self.VCTRL_KI = 50.0  # Voltage controller integral gain
+        self.VCTRL_KI = 2.0  # Voltage controller integral gain
         self.NOISE = 0.002  # Voltage noise level, pu
         
-        self.VINIT = 1.0  # Initial voltage magnitude, pu
+        self.VINIT = 1.025  # Initial voltage magnitude, pu
         self.PINIT = 0.8  # Active power setpoint, pu
         self.QINIT = 0.0  # Initial reactive power, pu
         

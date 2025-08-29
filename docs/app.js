@@ -329,7 +329,10 @@ class PyodideBridge {
                 if (attempt > 1) {
                     this.loadingManager.updateRetryStatus('step-numpy', attempt, 5, numpyResult.error);
                 }
-                return await this.pyodide.loadPackage(['numpy']);
+                console.log(`Loading NumPy (attempt ${attempt})...`);
+                const result = await this.pyodide.loadPackage(['numpy']);
+                console.log('NumPy package loaded successfully');
+                return result;
             }, RetryManager.getConfig('network-request'));
 
             if (!numpyResult.success) {
@@ -396,21 +399,36 @@ class PyodideBridge {
             // Load Newton-Raphson solver from embedded script
             const newtonScript = document.getElementById('embedded-newton-raphson');
             if (newtonScript) {
+                console.log('Loading Newton-Raphson Python module...');
                 this.pyodide.runPython(newtonScript.textContent);
+                console.log('Newton-Raphson module loaded successfully');
+            } else {
+                console.warn('Newton-Raphson script element not found');
             }
 
             // Load voltage control system from embedded script  
             const voltageScript = document.getElementById('embedded-voltage-control');
             if (voltageScript) {
+                console.log('Loading voltage control Python module...');
                 this.pyodide.runPython(voltageScript.textContent);
+                console.log('Voltage control module loaded successfully');
+            } else {
+                console.warn('Voltage control script element not found');
             }
         } catch (error) {
             console.error('Failed to load Python modules:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             throw new Error(`Failed to load Python modules: ${error.message}`);
         }
     }
 
     async setupPythonFunctions() {
+        console.log('Setting up Python function references...');
+        
         // Get references to Python functions
         this.simulationFunctions = {
             simulate_step: this.pyodide.globals.get('simulate_step'),
@@ -424,9 +442,15 @@ class PyodideBridge {
         // Verify all functions are available
         for (const [name, func] of Object.entries(this.simulationFunctions)) {
             if (!func) {
+                console.error(`Python function not found: ${name}`);
+                console.log('Available Python globals:', Object.keys(this.pyodide.globals.toJs()));
                 throw new Error(`Python function not found: ${name}`);
+            } else {
+                console.log(`✓ Found Python function: ${name}`);
             }
         }
+        
+        console.log('All Python functions set up successfully');
     }
 
     callPythonFunction(functionName, ...args) {

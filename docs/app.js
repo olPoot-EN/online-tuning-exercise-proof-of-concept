@@ -2024,7 +2024,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const attemptInitialization = async () => {
         try {
-            const success = await app.initialize();
+            // Add timeout to prevent hanging
+            const initTimeout = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Initialization timeout after 30 seconds')), 30000)
+            );
+            
+            const success = await Promise.race([app.initialize(), initTimeout]);
             if (success) {
                 console.log('Application initialized successfully');
                 
@@ -2069,7 +2074,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Create new app instance for clean retry
         const newApp = new VoltageExerciseApp();
-        success = await attemptInitialization.call({ initialize: () => newApp.initialize() });
+        
+        // Define new attempt function with the new app instance
+        const newAttemptInitialization = async () => {
+            try {
+                // Add timeout to prevent hanging on retry
+                const retryTimeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Retry initialization timeout after 30 seconds')), 30000)
+                );
+                
+                const success = await Promise.race([newApp.initialize(), retryTimeout]);
+                if (success) {
+                    console.log('Application initialized successfully on retry');
+                    // Update global app reference for resize handlers
+                    app.chartManager = newApp.chartManager;
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error(`Retry initialization attempt ${retryCount + 1} failed:`, error);
+                return false;
+            }
+        };
+        
+        success = await newAttemptInitialization();
     }
     
     if (!success) {

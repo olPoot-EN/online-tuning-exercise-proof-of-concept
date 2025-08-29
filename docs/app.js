@@ -1160,7 +1160,7 @@ class SimulationController {
         // Update display
         const display = document.getElementById('voltage-display');
         if (display) {
-            display.textContent = this.voltageReference.toFixed(2);
+            display.textContent = this.voltageReference.toFixed(3);
         }
     }
 
@@ -1351,6 +1351,10 @@ class VoltageExerciseApp {
         const voltageSlider = document.getElementById('voltage-slider');
         const voltageUp = document.getElementById('voltage-up');
         const voltageDown = document.getElementById('voltage-down');
+        const voltageUpLarge = document.getElementById('voltage-up-large');
+        const voltageDownLarge = document.getElementById('voltage-down-large');
+        const coarseAdjust = document.getElementById('coarse-adjust');
+        const fineAdjust = document.getElementById('fine-adjust');
 
         if (voltageSlider) {
             voltageSlider.addEventListener('input', (e) => {
@@ -1361,7 +1365,8 @@ class VoltageExerciseApp {
         if (voltageUp) {
             voltageUp.addEventListener('click', () => {
                 const currentValue = parseFloat(voltageSlider.value);
-                const newValue = Math.min(110, currentValue + 0.5);
+                const fineIncrement = parseFloat(fineAdjust.value) || 0.5;
+                const newValue = Math.min(110, currentValue + fineIncrement);
                 voltageSlider.value = newValue;
                 this.simulationController.setVoltageReference(newValue);
             });
@@ -1370,7 +1375,28 @@ class VoltageExerciseApp {
         if (voltageDown) {
             voltageDown.addEventListener('click', () => {
                 const currentValue = parseFloat(voltageSlider.value);
-                const newValue = Math.max(90, currentValue - 0.5);
+                const fineIncrement = parseFloat(fineAdjust.value) || 0.5;
+                const newValue = Math.max(90, currentValue - fineIncrement);
+                voltageSlider.value = newValue;
+                this.simulationController.setVoltageReference(newValue);
+            });
+        }
+
+        if (voltageUpLarge) {
+            voltageUpLarge.addEventListener('click', () => {
+                const currentValue = parseFloat(voltageSlider.value);
+                const coarseIncrement = parseFloat(coarseAdjust.value) || 2.0;
+                const newValue = Math.min(110, currentValue + coarseIncrement);
+                voltageSlider.value = newValue;
+                this.simulationController.setVoltageReference(newValue);
+            });
+        }
+
+        if (voltageDownLarge) {
+            voltageDownLarge.addEventListener('click', () => {
+                const currentValue = parseFloat(voltageSlider.value);
+                const coarseIncrement = parseFloat(coarseAdjust.value) || 2.0;
+                const newValue = Math.max(90, currentValue - coarseIncrement);
                 voltageSlider.value = newValue;
                 this.simulationController.setVoltageReference(newValue);
             });
@@ -1641,6 +1667,7 @@ class VoltageExerciseApp {
 
     saveMenuStates() {
         const menuIds = [
+            'tuning-content',
             'voltage-control-content',
             'system-parameters-content', 
             'simulation-control-content',
@@ -1658,6 +1685,7 @@ class VoltageExerciseApp {
 
     restoreMenuStates() {
         const menuIds = [
+            'tuning-content',
             'voltage-control-content',
             'system-parameters-content',
             'simulation-control-content', 
@@ -1666,6 +1694,7 @@ class VoltageExerciseApp {
         ];
 
         const toggleIds = {
+            'tuning-content': 'tuning-toggle',
             'voltage-control-content': 'voltage-control-toggle',
             'system-parameters-content': 'system-parameters-toggle',
             'simulation-control-content': 'simulation-control-toggle',

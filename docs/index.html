@@ -77,6 +77,26 @@
                 </div>
             </div>
 
+            <!-- Tuning Panel -->
+            <div class="control-panel">
+                <div class="control-group">
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleTuningPanel()">
+                        Tuning
+                        <span id="tuning-toggle" style="font-size: 0.8rem; opacity: 0.7;">▼</span>
+                    </h3>
+                    <div id="tuning-content">
+                        <div class="config-item">
+                            <label>Proportional Gain:</label>
+                            <input type="number" id="voltage-kp" value="10.0" min="1.0" max="50.0" step="1.0">
+                        </div>
+                        <div class="config-item">
+                            <label>Integral Gain:</label>
+                            <input type="number" id="voltage-ki" value="50.0" min="1.0" max="200.0" step="1.0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Voltage Control Panel -->
             <div class="control-panel">
                 <div class="control-group">
@@ -89,15 +109,31 @@
                             <span id="voltage-display">1.00</span> pu
                         </div>
                         <div class="voltage-slider-container">
-                            <button id="voltage-down" class="voltage-button" title="Decrease voltage reference">▼</button>
+                            <div class="voltage-buttons-left">
+                                <button id="voltage-down" class="voltage-button" title="Decrease voltage reference">▼</button>
+                                <button id="voltage-down-large" class="voltage-button" title="Decrease voltage reference by 2%">▼▼</button>
+                            </div>
                             <input type="range" id="voltage-slider" class="voltage-slider" 
                                    min="90" max="110" value="100" step="0.1">
-                            <button id="voltage-up" class="voltage-button" title="Increase voltage reference">▲</button>
+                            <div class="voltage-buttons-right">
+                                <button id="voltage-up-large" class="voltage-button" title="Increase voltage reference by 2%">▲▲</button>
+                                <button id="voltage-up" class="voltage-button" title="Increase voltage reference">▲</button>
+                            </div>
                         </div>
                         <div class="voltage-range-labels">
                             <span>90%</span>
                             <span>100%</span>
                             <span>110%</span>
+                        </div>
+                        <div class="voltage-adjustments">
+                            <div class="config-item">
+                                <label>Coarse Adjust (%):</label>
+                                <input type="number" id="coarse-adjust" value="2.0" min="0.1" max="10.0" step="0.1">
+                            </div>
+                            <div class="config-item">
+                                <label>Fine Adjust (%):</label>
+                                <input type="number" id="fine-adjust" value="0.5" min="0.1" max="5.0" step="0.1">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -126,14 +162,6 @@
                     <div class="config-item">
                         <label>Plant Time Constant (s):</label>
                         <input type="number" id="plant-time-constant" value="0.25" min="0.1" max="2.0" step="0.05">
-                    </div>
-                    <div class="config-item">
-                        <label>Voltage Kp:</label>
-                        <input type="number" id="voltage-kp" value="10.0" min="1.0" max="50.0" step="1.0">
-                    </div>
-                    <div class="config-item">
-                        <label>Voltage Ki:</label>
-                        <input type="number" id="voltage-ki" value="50.0" min="1.0" max="200.0" step="1.0">
                     </div>
                     </div>
                 </div>
@@ -181,41 +209,40 @@
                     </div>
                 </div>
 
-                <!-- System Status Panel -->
+                <!-- Status Panel -->
                 <div class="status-panel">
                     <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between;" onclick="toggleStatusPanel()">
-                        System Status
+                        Status
                         <span id="status-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
                     </h3>
                     <div id="status-content" class="status-content collapsed">
-                    <div class="status-item">
+                    <div class="status-item" style="font-size: 0.8rem;">
                         <span class="status-label">
-                            <span id="status-indicator" class="status-indicator stopped"></span>
                             Simulation
                         </span>
                         <span id="simulation-status" class="status-value">Stopped</span>
                     </div>
-                    <div class="status-item">
+                    <div class="status-item" style="font-size: 0.8rem;">
                         <span class="status-label">Current Time</span>
                         <span id="current-time" class="status-value">0.00 s</span>
                     </div>
-                    <div class="status-item">
+                    <div class="status-item" style="font-size: 0.8rem;">
                         <span class="status-label">Iterations</span>
                         <span id="iteration-count" class="status-value">0</span>
                     </div>
-                    <div class="status-item">
+                    <div class="status-item" style="font-size: 0.8rem;">
                         <span class="status-label">Power Flow</span>
                         <span id="power-flow-status" class="status-value">Converged</span>
                     </div>
-                    <div class="status-item">
+                    <div class="status-item" style="font-size: 0.8rem;">
                         <span class="status-label">Voltage (Bus 2)</span>
                         <span id="bus-voltage" class="status-value">1.000 pu</span>
                     </div>
-                    <div class="status-item">
+                    <div class="status-item" style="font-size: 0.8rem;">
                         <span class="status-label">Reactive Power</span>
                         <span id="reactive-power" class="status-value">0.000 pu</span>
                     </div>
-                    <div class="status-item">
+                    <div class="status-item" style="font-size: 0.8rem;">
                         <span class="status-label">Version</span>
                         <span id="build-version" class="status-value">__BUILD_VERSION__</span>
                     </div>
@@ -815,6 +842,22 @@ def validate_simulation_health():
         function toggleSimulationControlPanel() {
             const content = document.getElementById('simulation-control-content');
             const toggle = document.getElementById('simulation-control-toggle');
+            const controlGroup = content.closest('.control-group');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                controlGroup.classList.remove('content-collapsed');
+                toggle.innerHTML = '▼';
+            } else {
+                content.classList.add('collapsed');
+                controlGroup.classList.add('content-collapsed');
+                toggle.innerHTML = '▶';
+            }
+        }
+
+        function toggleTuningPanel() {
+            const content = document.getElementById('tuning-content');
+            const toggle = document.getElementById('tuning-toggle');
             const controlGroup = content.closest('.control-group');
             
             if (content.classList.contains('collapsed')) {

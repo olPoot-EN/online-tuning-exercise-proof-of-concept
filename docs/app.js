@@ -487,9 +487,9 @@ class ChartManager {
         this.chartContractionEnabled = true;
         
         // Chart time window configuration
-        this.headBuffer = 1.0;         // Buffer ahead of current time (leading edge) (seconds)
+        this.headBuffer = 0.5;         // Buffer ahead of current time (leading edge) (seconds)
         this.totalChartTime = 15.0;    // Total time window shown (seconds)  
-        this.tailBuffer = 0.5;         // Buffer behind oldest data (trailing edge) (seconds)
+        this.tailBuffer = 0.2;         // Buffer behind oldest data (trailing edge) (seconds)
         
         // Calculate actual data storage requirement
         this.calculateDataRequirements();
@@ -633,17 +633,36 @@ class ChartManager {
                             const chartManager = this;
                             
                             if (chartManager.chartExpansionEnabled && chartManager.chartContractionEnabled) {
-                                // Original behavior: full auto-scaling
-                                const range = axis.max - axis.min;
+                                // Original behavior: full auto-scaling with minimum range limit
+                                const originalRange = axis.max - axis.min;
+                                const range = Math.max(originalRange, 0.001); // Increased minimum range to prevent excessive contraction
                                 const padding = range * 0.35; // 35% padding
-                                axis.max += padding;
-                                axis.min -= padding;
+                                
+                                // If original range was tiny, center the data and apply minimum range
+                                if (originalRange < 0.001) {
+                                    const center = (axis.max + axis.min) / 2;
+                                    axis.min = center - range / 2 - padding;
+                                    axis.max = center + range / 2 + padding;
+                                } else {
+                                    axis.max += padding;
+                                    axis.min -= padding;
+                                }
                             } else {
-                                // Modified behavior: track manual bounds
-                                const range = axis.max - axis.min;
+                                // Modified behavior: track manual bounds with minimum range limit
+                                const originalRange = axis.max - axis.min;
+                                const range = Math.max(originalRange, 0.001); // Increased minimum range to prevent excessive contraction
                                 const padding = range * 0.35; // 35% padding
-                                const newMin = axis.min - padding;
-                                const newMax = axis.max + padding;
+                                
+                                let newMin, newMax;
+                                // If original range was tiny, center the data and apply minimum range
+                                if (originalRange < 0.001) {
+                                    const center = (axis.max + axis.min) / 2;
+                                    newMin = center - range / 2 - padding;
+                                    newMax = center + range / 2 + padding;
+                                } else {
+                                    newMin = axis.min - padding;
+                                    newMax = axis.max + padding;
+                                }
                                 
                                 // Store original bounds if not set
                                 if (!axis._storedMin) axis._storedMin = newMin;
@@ -657,13 +676,16 @@ class ChartManager {
                                     axis._storedMax = newMax;
                                 }
                                 
-                                // Apply contraction logic (simplified)
+                                // Apply contraction logic (simplified) with minimum range protection
                                 if (chartManager.chartContractionEnabled) {
                                     const currentRange = axis._storedMax - axis._storedMin;
-                                    const dataRange = newMax - newMin;
+                                    const dataRange = Math.max(newMax - newMin, 0.001); // Increased minimum range protection
                                     if (dataRange < currentRange * 0.8) {
-                                        axis._storedMin = newMin;
-                                        axis._storedMax = newMax;
+                                        // Ensure contracted range maintains minimum
+                                        const center = (newMax + newMin) / 2;
+                                        const halfRange = Math.max(dataRange / 2, 0.0005); // Half of minimum range
+                                        axis._storedMin = center - halfRange;
+                                        axis._storedMax = center + halfRange;
                                     }
                                 }
                                 
@@ -781,17 +803,36 @@ class ChartManager {
                             const chartManager = this;
                             
                             if (chartManager.chartExpansionEnabled && chartManager.chartContractionEnabled) {
-                                // Original behavior: full auto-scaling
-                                const range = axis.max - axis.min;
+                                // Original behavior: full auto-scaling with minimum range limit
+                                const originalRange = axis.max - axis.min;
+                                const range = Math.max(originalRange, 0.001); // Increased minimum range to prevent excessive contraction
                                 const padding = range * 0.45; // 45% padding
-                                axis.max += padding;
-                                axis.min -= padding;
+                                
+                                // If original range was tiny, center the data and apply minimum range
+                                if (originalRange < 0.001) {
+                                    const center = (axis.max + axis.min) / 2;
+                                    axis.min = center - range / 2 - padding;
+                                    axis.max = center + range / 2 + padding;
+                                } else {
+                                    axis.max += padding;
+                                    axis.min -= padding;
+                                }
                             } else {
-                                // Modified behavior: track manual bounds
-                                const range = axis.max - axis.min;
+                                // Modified behavior: track manual bounds with minimum range limit
+                                const originalRange = axis.max - axis.min;
+                                const range = Math.max(originalRange, 0.001); // Increased minimum range to prevent excessive contraction
                                 const padding = range * 0.45; // 45% padding
-                                const newMin = axis.min - padding;
-                                const newMax = axis.max + padding;
+                                
+                                let newMin, newMax;
+                                // If original range was tiny, center the data and apply minimum range
+                                if (originalRange < 0.001) {
+                                    const center = (axis.max + axis.min) / 2;
+                                    newMin = center - range / 2 - padding;
+                                    newMax = center + range / 2 + padding;
+                                } else {
+                                    newMin = axis.min - padding;
+                                    newMax = axis.max + padding;
+                                }
                                 
                                 // Store original bounds if not set
                                 if (!axis._storedMin) axis._storedMin = newMin;
@@ -805,13 +846,16 @@ class ChartManager {
                                     axis._storedMax = newMax;
                                 }
                                 
-                                // Apply contraction logic (simplified)
+                                // Apply contraction logic (simplified) with minimum range protection
                                 if (chartManager.chartContractionEnabled) {
                                     const currentRange = axis._storedMax - axis._storedMin;
-                                    const dataRange = newMax - newMin;
+                                    const dataRange = Math.max(newMax - newMin, 0.001); // Increased minimum range protection
                                     if (dataRange < currentRange * 0.8) {
-                                        axis._storedMin = newMin;
-                                        axis._storedMax = newMax;
+                                        // Ensure contracted range maintains minimum
+                                        const center = (newMax + newMin) / 2;
+                                        const halfRange = Math.max(dataRange / 2, 0.0005); // Half of minimum range
+                                        axis._storedMin = center - halfRange;
+                                        axis._storedMax = center + halfRange;
                                     }
                                 }
                                 

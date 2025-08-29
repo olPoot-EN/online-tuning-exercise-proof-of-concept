@@ -128,7 +128,7 @@
                         <div class="voltage-adjustments">
                             <div class="config-item">
                                 <label>Coarse Adjust (%):</label>
-                                <input type="number" id="coarse-adjust" value="2.0" min="0.1" max="10.0" step="0.1">
+                                <input type="number" id="coarse-adjust" value="2.0" min="0.1" max="10.0" step="0.5">
                             </div>
                             <div class="config-item">
                                 <label>Fine Adjust (%):</label>
@@ -169,49 +169,47 @@
             
                 <!-- Chart Configurations Panel -->
                 <div class="control-panel">
-                    <div class="control-group">
-                        <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleChartConfigPanel()">
-                            Chart Configurations
-                            <span id="chart-config-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
-                        </h3>
-                        <div id="chart-config-content" class="collapsed">
-                            <div class="chart-controls" style="margin-top: 0.3rem;">
-                                <button id="reset-chart-scales" style="width: 100%; padding: 0.35rem; background: var(--secondary-color, #3498db); color: white; border: none; border-radius: 0.2rem; cursor: pointer; font-size: 0.8rem; margin-bottom: 0.5rem;">
-                                    Reset Chart Scales
-                                </button>
-                                
-                                <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
-                                    <input type="checkbox" id="chart-expansion" checked style="margin-right: 0.5rem;">
-                                    <label for="chart-expansion" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Expansion</label>
-                                </div>
-                                
-                                <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
-                                    <input type="checkbox" id="chart-contraction" checked style="margin-right: 0.5rem;">
-                                    <label for="chart-contraction" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Contraction</label>
-                                </div>
-                                
-                                <div class="config-item" style="margin-bottom: 0.3rem;">
-                                    <label style="font-size: 0.8rem;">Tail Buffer (s):</label>
-                                    <input type="number" id="tail-buffer" value="0.5" min="0" max="10" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
-                                </div>
-                                
-                                <div class="config-item" style="margin-bottom: 0.3rem;">
-                                    <label style="font-size: 0.8rem;">Total Chart Time (s):</label>
-                                    <input type="number" id="total-chart-time" value="15" min="5" max="50" step="1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
-                                </div>
-                                
-                                <div class="config-item" style="margin-bottom: 0.3rem;">
-                                    <label style="font-size: 0.8rem;">Head Buffer (s):</label>
-                                    <input type="number" id="head-buffer" value="1" min="0" max="5" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
-                                </div>
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleChartConfigPanel()">
+                        Chart Configurations
+                        <span id="chart-config-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
+                    </h3>
+                    <div id="chart-config-content" class="collapsed">
+                        <div class="chart-controls" style="margin-top: 0.3rem;">
+                            <button id="reset-chart-scales" style="width: 100%; padding: 0.35rem; background: var(--secondary-color, #3498db); color: white; border: none; border-radius: 0.2rem; cursor: pointer; font-size: 0.8rem; margin-bottom: 0.5rem;">
+                                Reset Chart Scales
+                            </button>
+                            
+                            <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
+                                <input type="checkbox" id="chart-expansion" checked style="margin-right: 0.5rem;">
+                                <label for="chart-expansion" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Expansion</label>
+                            </div>
+                            
+                            <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
+                                <input type="checkbox" id="chart-contraction" checked style="margin-right: 0.5rem;">
+                                <label for="chart-contraction" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Contraction</label>
+                            </div>
+                            
+                            <div class="config-item" style="margin-bottom: 0.3rem;">
+                                <label style="font-size: 0.8rem;">Tail Buffer (s):</label>
+                                <input type="number" id="tail-buffer" value="0.5" min="0" max="10" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
+                            </div>
+                            
+                            <div class="config-item" style="margin-bottom: 0.3rem;">
+                                <label style="font-size: 0.8rem;">Total Chart Time (s):</label>
+                                <input type="number" id="total-chart-time" value="15" min="5" max="50" step="1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
+                            </div>
+                            
+                            <div class="config-item" style="margin-bottom: 0.3rem;">
+                                <label style="font-size: 0.8rem;">Head Buffer (s):</label>
+                                <input type="number" id="head-buffer" value="1" min="0" max="5" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Status Panel -->
-                <div class="status-panel">
-                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between;" onclick="toggleStatusPanel()">
+                <div class="control-panel">
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleStatusPanel()">
                         Status
                         <span id="status-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
                     </h3>
@@ -778,15 +776,15 @@ def validate_simulation_health():
         function toggleStatusPanel() {
             const content = document.getElementById('status-content');
             const toggle = document.getElementById('status-toggle');
-            const controlGroup = content.closest('.status-panel');
+            const controlPanel = content.closest('.control-panel');
             
             if (content.classList.contains('collapsed')) {
                 content.classList.remove('collapsed');
-                controlGroup.classList.remove('content-collapsed');
+                controlPanel.classList.remove('content-collapsed');
                 toggle.innerHTML = '▼';
             } else {
                 content.classList.add('collapsed');
-                controlGroup.classList.add('content-collapsed');
+                controlPanel.classList.add('content-collapsed');
                 toggle.innerHTML = '▶';
             }
         }
@@ -794,15 +792,15 @@ def validate_simulation_health():
         function toggleChartConfigPanel() {
             const content = document.getElementById('chart-config-content');
             const toggle = document.getElementById('chart-config-toggle');
-            const controlGroup = content.closest('.control-group');
+            const controlPanel = content.closest('.control-panel');
             
             if (content.classList.contains('collapsed')) {
                 content.classList.remove('collapsed');
-                controlGroup.classList.remove('content-collapsed');
+                controlPanel.classList.remove('content-collapsed');
                 toggle.innerHTML = '▼';
             } else {
                 content.classList.add('collapsed');
-                controlGroup.classList.add('content-collapsed');
+                controlPanel.classList.add('content-collapsed');
                 toggle.innerHTML = '▶';
             }
         }

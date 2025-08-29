@@ -536,7 +536,7 @@ class ChartManager {
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
-                    pointHoverRadius: 4,
+                    pointHoverRadius: 0,
                     borderWidth: 1.5
                 }, {
                     label: 'Actual',
@@ -546,7 +546,7 @@ class ChartManager {
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
-                    pointHoverRadius: 4,
+                    pointHoverRadius: 0,
                     borderWidth: 1.5
                 }]
             },
@@ -590,6 +590,9 @@ class ChartManager {
                                 size: 11  /* Smaller legend font */
                             }
                         }
+                    },
+                    tooltip: {
+                        enabled: false
                     }
                 },
                 scales: {
@@ -611,9 +614,13 @@ class ChartManager {
                             display: true,
                             text: 'Voltage (pu)'
                         },
-                        // Dynamic scaling - will be updated by autoscaling logic
-                        min: 0.95,
-                        max: 1.05
+                        // Full auto-scaling with custom padding
+                        afterDataLimits: (axis) => {
+                            const range = axis.max - axis.min;
+                            const padding = range * 0.35; // 35% padding
+                            axis.max += padding;
+                            axis.min -= padding;
+                        }
                     }
                 },
                 animation: {
@@ -639,7 +646,7 @@ class ChartManager {
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
-                    pointHoverRadius: 4,
+                    pointHoverRadius: 0,
                     borderWidth: 1.5
                 }, {
                     label: 'Actual',
@@ -649,7 +656,7 @@ class ChartManager {
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
-                    pointHoverRadius: 4,
+                    pointHoverRadius: 0,
                     borderWidth: 1.5
                 }]
             },
@@ -693,6 +700,9 @@ class ChartManager {
                                 size: 11  /* Smaller legend font */
                             }
                         }
+                    },
+                    tooltip: {
+                        enabled: false
                     }
                 },
                 scales: {
@@ -714,8 +724,13 @@ class ChartManager {
                             display: true,
                             text: 'Reactive Power (pu)'
                         },
-                        min: -0.2,
-                        max: 0.2
+                        // Full auto-scaling with custom padding
+                        afterDataLimits: (axis) => {
+                            const range = axis.max - axis.min;
+                            const padding = range * 0.45; // 45% padding
+                            axis.max += padding;
+                            axis.min -= padding;
+                        }
                     }
                 },
                 animation: {
@@ -726,24 +741,6 @@ class ChartManager {
         
     }
     
-    applyInitialChartBounds() {
-        // Set reasonable starting bounds for voltage chart (around 1.0 pu)
-        if (this.voltageChart) {
-            this.voltageChart.options.scales.y.min = 0.9;
-            this.voltageChart.options.scales.y.max = 1.1;
-            console.log('[Voltage] Initial bounds set: [0.9, 1.1]');
-        }
-        
-        // Set reasonable starting bounds for reactive chart (around 0.0 pu)
-        if (this.reactiveChart) {
-            this.reactiveChart.options.scales.y.min = -0.2;
-            this.reactiveChart.options.scales.y.max = 0.2;
-            // Clear suggestedMin/suggestedMax to use explicit min/max
-            delete this.reactiveChart.options.scales.y.suggestedMin;
-            delete this.reactiveChart.options.scales.y.suggestedMax;
-            console.log('[Reactive] Initial bounds set: [-0.2, 0.2]');
-        }
-    }
 
     // Sophisticated autoscaling methods
     calculateMovingAverage(data, windowSize) {
@@ -809,24 +806,8 @@ class ChartManager {
 
         const chartData = data.data_arrays;
         
-        // Check both reference and actual signals for scaling
-        if (chartData.voltage_actual && chartData.voltage_actual.length > 0) {
-            const latestVoltageActual = chartData.voltage_actual[chartData.voltage_actual.length - 1];
-            const latestVoltageRef = chartData.voltage_reference[chartData.voltage_reference.length - 1];
-            
-            // Check both actual and reference values for scaling
-            this.checkAndUpdateScale(this.voltageChart, latestVoltageActual);
-            this.checkAndUpdateScale(this.voltageChart, latestVoltageRef);
-        }
-
-        if (chartData.reactive_actual && chartData.reactive_actual.length > 0) {
-            const latestReactiveActual = chartData.reactive_actual[chartData.reactive_actual.length - 1];
-            const latestReactiveRef = chartData.reactive_reference[chartData.reactive_reference.length - 1];
-            
-            // Check both actual and reference values for scaling
-            this.checkAndUpdateScale(this.reactiveChart, latestReactiveActual);
-            this.checkAndUpdateScale(this.reactiveChart, latestReactiveRef);
-        }
+        // Chart.js auto-scaling handles expansion/contraction automatically
+        // No manual scaling logic needed
         
         // Update voltage chart
         this.updateChart(this.voltageChart, chartData.time_values, [
@@ -906,60 +887,28 @@ class ChartManager {
     }
 
     resetChartScales() {
-        // Reset to default scales
+        // Clear any manual scaling to restore full auto-scaling
         if (this.voltageChart) {
-            this.voltageChart.options.scales.y.min = 0.95;
-            this.voltageChart.options.scales.y.max = 1.05;
+            // Remove all manual scaling - let Chart.js auto-scale completely
+            delete this.voltageChart.options.scales.y.min;
+            delete this.voltageChart.options.scales.y.max;
+            delete this.voltageChart.options.scales.y.suggestedMin;
+            delete this.voltageChart.options.scales.y.suggestedMax;
             this.voltageChart.update('none');
         }
 
         if (this.reactiveChart) {
-            this.reactiveChart.options.scales.y.min = -0.2;
-            this.reactiveChart.options.scales.y.max = 0.2;
+            // Remove all manual scaling - let Chart.js auto-scale completely
+            delete this.reactiveChart.options.scales.y.min;
+            delete this.reactiveChart.options.scales.y.max;
+            delete this.reactiveChart.options.scales.y.suggestedMin;
+            delete this.reactiveChart.options.scales.y.suggestedMax;
             this.reactiveChart.update('none');
         }
         
-        console.log('Chart scales reset to defaults');
+        console.log('Chart scales reset to full auto-scaling');
     }
 
-    checkAndUpdateScale(chart, currentValue) {
-        if (!chart || !chart.options.scales.y) return;
-        
-        const yScale = chart.options.scales.y;
-        let needsUpdate = false;
-        
-        // Get current bounds (Chart.js will set these automatically if not defined)
-        let currentMin = yScale.min;
-        let currentMax = yScale.max;
-        
-        // If no bounds set, initialize with reasonable defaults
-        if (currentMin === undefined || currentMax === undefined) {
-            if (chart === this.voltageChart) {
-                currentMin = 0.95;
-                currentMax = 1.05;
-            } else {
-                currentMin = -0.2;
-                currentMax = 0.2;
-            }
-            needsUpdate = true;
-        }
-        
-        // Check if value is out of range
-        if (currentValue < currentMin) {
-            yScale.min = currentValue - Math.abs(currentValue) * 0.1; // Add 10% margin
-            needsUpdate = true;
-        }
-        
-        if (currentValue > currentMax) {
-            yScale.max = currentValue + Math.abs(currentValue) * 0.1; // Add 10% margin
-            needsUpdate = true;
-        }
-        
-        // Update chart if bounds changed
-        if (needsUpdate) {
-            chart.update('none'); // Update without animation for performance
-        }
-    }
 
 }
 
@@ -1292,6 +1241,30 @@ class VoltageExerciseApp {
 
 
 
+        // Keyboard shortcut handlers
+        document.addEventListener('keydown', (e) => {
+            // Prevent shortcuts when user is typing in input fields
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            if (e.code === 'Space') {
+                e.preventDefault(); // Prevent page scroll
+                
+                if (e.shiftKey) {
+                    // Shift + Space: Reset simulation
+                    this.simulationController.resetSimulation();
+                } else {
+                    // Space: Toggle start/stop simulation
+                    if (this.simulationController.isRunning) {
+                        this.simulationController.stop();
+                    } else {
+                        this.simulationController.start();
+                    }
+                }
+            }
+        });
+
         // Window event handlers
         window.addEventListener('beforeunload', () => {
             if (this.simulationController) {
@@ -1404,6 +1377,7 @@ class VoltageExerciseApp {
         }
 
     }
+
 }
 
 // Initialize application when DOM is loaded with auto-retry

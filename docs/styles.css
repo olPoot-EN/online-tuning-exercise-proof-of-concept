@@ -320,7 +320,7 @@ body {
 }
 
 .status-content {
-    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
     overflow: hidden;
     max-height: 500px;
     opacity: 1;
@@ -329,7 +329,7 @@ body {
 .status-content.collapsed {
     max-height: 0;
     opacity: 0;
-    transition: max-height 0.3s ease-in, opacity 0.2s ease-in;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
 }
 
 /* Loading and Error States */
@@ -447,7 +447,7 @@ body {
 }
 
 #chart-config-content {
-    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
     overflow: hidden;
     max-height: 500px;
     opacity: 1;
@@ -456,7 +456,7 @@ body {
 #chart-config-content.collapsed {
     max-height: 0;
     opacity: 0;
-    transition: max-height 0.3s ease-in, opacity 0.2s ease-in;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
 }
 
 #chart-config-content.collapsed .chart-controls {

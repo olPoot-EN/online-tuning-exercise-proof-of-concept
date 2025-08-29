@@ -260,11 +260,16 @@ body {
 .voltage-range-labels {
     display: flex;
     justify-content: center;
-    gap: 50px;
+    gap: 75px;
     font-size: 0.85rem;
     color: var(--text-muted);
     margin-top: -0.1rem;
     margin-bottom: 0.5rem;
+    position: relative;
+}
+
+.voltage-range-labels span:last-child {
+    margin-left: 1rem;
 }
 
 /* Configuration Panel */
@@ -306,7 +311,7 @@ body {
     position: relative;
     background: var(--card-background);
     border-radius: 0.5rem;
-    box-shadow: var(--shadow);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
     padding: 0.3rem;
 }
 

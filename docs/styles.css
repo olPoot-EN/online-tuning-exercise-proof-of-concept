@@ -190,16 +190,10 @@ body {
 .voltage-slider-container {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
+    justify-content: space-between;
+    gap: 0.2rem;
     margin-bottom: 0.4rem;
-}
-
-.voltage-buttons-left,
-.voltage-buttons-right {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    padding: 0 0.2rem;
 }
 
 .voltage-button {
@@ -229,13 +223,16 @@ body {
 .voltage-slider {
     -webkit-appearance: none;
     appearance: none;
-    width: 162px;
+    flex: 1;
     height: 6px;
     border-radius: 3px;
-    background: #bbb;
+    background: linear-gradient(to right, 
+        #bbb 0%, #bbb 49.5%,
+        #666 49.5%, #666 50.5%,
+        #bbb 50.5%, #bbb 100%);
     border: 1px solid #999;
     outline: none;
-    transition: background 0.3s;
+    transition: opacity 0.3s;
 }
 
 .voltage-slider::-webkit-slider-thumb {
@@ -262,14 +259,12 @@ body {
 
 .voltage-range-labels {
     display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
+    justify-content: center;
+    gap: 50px;
+    font-size: 0.85rem;
     color: var(--text-muted);
-    margin-top: 0.5rem;
-    width: 194px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 8px;
+    margin-top: -0.1rem;
+    margin-bottom: 0.5rem;
 }
 
 /* Configuration Panel */

@@ -1157,10 +1157,10 @@ class SimulationController {
     setVoltageReference(value) {
         this.voltageReference = parseFloat(value) / 100.0; // Convert percentage to per-unit
         
-        // Update display
+        // Update display - show percentage with 1 decimal
         const display = document.getElementById('voltage-display');
         if (display) {
-            display.textContent = this.voltageReference.toFixed(3);
+            display.textContent = parseFloat(value).toFixed(1);
         }
     }
 

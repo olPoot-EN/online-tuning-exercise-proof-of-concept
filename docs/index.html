@@ -106,23 +106,23 @@
                     </h3>
                     <div id="voltage-control-content" class="voltage-control">
                         <div class="voltage-display">
-                            <span id="voltage-display">1.00</span> pu
+                            <span id="voltage-display">100.0</span> %
                         </div>
                         <div class="voltage-slider-container">
-                            <div class="voltage-buttons-left">
-                                <button id="voltage-down" class="voltage-button" title="Decrease voltage reference">▼</button>
-                                <button id="voltage-down-large" class="voltage-button" title="Decrease voltage reference by 2%">▼▼</button>
-                            </div>
+                            <button id="voltage-down-large" class="voltage-button" title="Decrease voltage reference by 2%">▼▼</button>
+                            <button id="voltage-down" class="voltage-button" title="Decrease voltage reference">▼</button>
                             <input type="range" id="voltage-slider" class="voltage-slider" 
-                                   min="90" max="110" value="100" step="0.1">
-                            <div class="voltage-buttons-right">
-                                <button id="voltage-up-large" class="voltage-button" title="Increase voltage reference by 2%">▲▲</button>
-                                <button id="voltage-up" class="voltage-button" title="Increase voltage reference">▲</button>
-                            </div>
+                                   min="90" max="110" value="100" step="0.1" list="voltage-ticks">
+                            <datalist id="voltage-ticks">
+                                <option value="90"></option>
+                                <option value="100"></option>
+                                <option value="110"></option>
+                            </datalist>
+                            <button id="voltage-up" class="voltage-button" title="Increase voltage reference">▲</button>
+                            <button id="voltage-up-large" class="voltage-button" title="Increase voltage reference by 2%">▲▲</button>
                         </div>
                         <div class="voltage-range-labels">
                             <span>90%</span>
-                            <span>100%</span>
                             <span>110%</span>
                         </div>
                         <div class="voltage-adjustments">

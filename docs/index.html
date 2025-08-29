@@ -80,8 +80,8 @@
                         <input type="number" id="update-rate" value="50" min="10" max="1000" step="10">
                     </div>
                     <div class="config-item">
-                        <label>Noise Level (pu):</label>
-                        <input type="number" id="noise-level" value="0.002" min="0" max="0.01" step="0.001">
+                        <label>Noise Level (%):</label>
+                        <input type="number" id="noise-level" value="0.2" min="0" max="5.0" step="0.1">
                     </div>
                     <div class="config-item">
                         <label>System Reactance (pu):</label>
@@ -105,13 +105,13 @@
 
                 <div class="control-group">
                     <h3>Simulation Control</h3>
-                    <div class="simulation-controls" style="display: flex; justify-content: space-between; gap: 10px;">
-                        <button id="start-simulation" style="flex-grow: 1; padding: 0.75rem; background: var(--success-color, #27ae60); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 1rem;">Start</button>
-                        <button id="stop-simulation" style="flex-grow: 1; padding: 0.75rem; background: var(--danger-color, #e74c3c); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 1rem;">Stop</button>
-                        <button id="reset-simulation" style="flex-grow: 1; padding: 0.75rem; background: var(--warning-color, #f39c12); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 1rem;">Reset</button>
+                    <div class="simulation-controls" style="display: flex; justify-content: space-between; gap: 4px;">
+                        <button id="start-simulation" style="flex-grow: 1; padding: 0.4rem; background: var(--success-color, #27ae60); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Start</button>
+                        <button id="stop-simulation" style="flex-grow: 1; padding: 0.4rem; background: var(--danger-color, #e74c3c); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Stop</button>
+                        <button id="reset-simulation" style="flex-grow: 1; padding: 0.4rem; background: var(--warning-color, #f39c12); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Reset</button>
                     </div>
-                    <div class="chart-controls" style="margin-top: 0.5rem;">
-                        <button id="reset-chart-scales" style="width: 100%; padding: 0.5rem; background: var(--secondary-color, #3498db); color: white; border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem;">
+                    <div class="chart-controls" style="margin-top: 0.3rem;">
+                        <button id="reset-chart-scales" style="width: 100%; padding: 0.35rem; background: var(--secondary-color, #3498db); color: white; border: none; border-radius: 0.2rem; cursor: pointer; font-size: 0.8rem;">
                             Reset Chart Scales
                         </button>
                     </div>
@@ -130,7 +130,11 @@
 
             <!-- Status Panel -->
             <div class="status-panel">
-                <h3 style="color: var(--primary-color); margin-bottom: 1rem;">System Status</h3>
+                <h3 style="color: var(--primary-color); margin-bottom: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between;" onclick="toggleStatusPanel()">
+                    System Status
+                    <span id="status-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
+                </h3>
+                <div id="status-content" class="status-content collapsed">
                 <div class="status-item">
                     <span class="status-label">
                         <span id="status-indicator" class="status-indicator stopped"></span>
@@ -161,6 +165,7 @@
                 <div class="status-item">
                     <span class="status-label">Version</span>
                     <span id="build-version" class="status-value">__BUILD_VERSION__</span>
+                </div>
                 </div>
             </div>
         </div>
@@ -652,6 +657,22 @@ def validate_simulation_health():
     return health_status
     </script>
 
+    <!-- Status Panel Toggle Function -->
+    <script>
+        function toggleStatusPanel() {
+            const content = document.getElementById('status-content');
+            const toggle = document.getElementById('status-toggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                toggle.innerHTML = '▼';
+            } else {
+                content.classList.add('collapsed');
+                toggle.innerHTML = '▶';
+            }
+        }
+    </script>
+    
     <!-- Main JavaScript Application -->
     <script src="app.js"></script>
 </body>

@@ -537,7 +537,7 @@ class ChartManager {
                     tension: 0.1,
                     pointRadius: 0,
                     pointHoverRadius: 4,
-                    borderWidth: 2
+                    borderWidth: 1.5
                 }, {
                     label: 'Actual',
                     data: [],
@@ -547,12 +547,20 @@ class ChartManager {
                     tension: 0.1,
                     pointRadius: 0,
                     pointHoverRadius: 4,
-                    borderWidth: 2
+                    borderWidth: 1.5
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        right: 0
+                    }
+                },
                 plugins: {
                     title: {
                         display: true,
@@ -566,7 +574,7 @@ class ChartManager {
                         color: '#2c3e50',
                         padding: {
                             top: 0,
-                            bottom: 0 /* Remove all title padding */
+                            bottom: -15 /* More aggressive negative padding to eliminate space */
                         }
                     },
                     legend: {
@@ -577,7 +585,7 @@ class ChartManager {
                             usePointStyle: true,
                             pointStyle: 'line',
                             boxWidth: 15, /* Reduced from 20 */
-                            padding: 4,   /* Minimal legend padding */
+                            padding: 18,   /* Further increased spacing between legend items */
                             font: {
                                 size: 11  /* Smaller legend font */
                             }
@@ -632,22 +640,30 @@ class ChartManager {
                     tension: 0.1,
                     pointRadius: 0,
                     pointHoverRadius: 4,
-                    borderWidth: 2
+                    borderWidth: 1.5
                 }, {
                     label: 'Actual',
                     data: [],
-                    borderColor: '#27ae60',
-                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
                     fill: false,
                     tension: 0.1,
                     pointRadius: 0,
                     pointHoverRadius: 4,
-                    borderWidth: 2
+                    borderWidth: 1.5
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        right: 0
+                    }
+                },
                 plugins: {
                     title: {
                         display: true,
@@ -661,7 +677,7 @@ class ChartManager {
                         color: '#2c3e50',
                         padding: {
                             top: 0,
-                            bottom: 0 /* Remove all title padding */
+                            bottom: -15 /* More aggressive negative padding to eliminate space */
                         }
                     },
                     legend: {
@@ -672,7 +688,7 @@ class ChartManager {
                             usePointStyle: true,
                             pointStyle: 'line',
                             boxWidth: 15, /* Reduced from 20 */
-                            padding: 4,   /* Minimal legend padding */
+                            padding: 18,   /* Further increased spacing between legend items */
                             font: {
                                 size: 11  /* Smaller legend font */
                             }
@@ -793,15 +809,23 @@ class ChartManager {
 
         const chartData = data.data_arrays;
         
-        // Simple rescaling for out-of-range data
+        // Check both reference and actual signals for scaling
         if (chartData.voltage_actual && chartData.voltage_actual.length > 0) {
-            const latestVoltage = chartData.voltage_actual[chartData.voltage_actual.length - 1];
-            this.checkAndUpdateScale(this.voltageChart, latestVoltage);
+            const latestVoltageActual = chartData.voltage_actual[chartData.voltage_actual.length - 1];
+            const latestVoltageRef = chartData.voltage_reference[chartData.voltage_reference.length - 1];
+            
+            // Check both actual and reference values for scaling
+            this.checkAndUpdateScale(this.voltageChart, latestVoltageActual);
+            this.checkAndUpdateScale(this.voltageChart, latestVoltageRef);
         }
 
         if (chartData.reactive_actual && chartData.reactive_actual.length > 0) {
-            const latestReactive = chartData.reactive_actual[chartData.reactive_actual.length - 1];
-            this.checkAndUpdateScale(this.reactiveChart, latestReactive);
+            const latestReactiveActual = chartData.reactive_actual[chartData.reactive_actual.length - 1];
+            const latestReactiveRef = chartData.reactive_reference[chartData.reactive_reference.length - 1];
+            
+            // Check both actual and reference values for scaling
+            this.checkAndUpdateScale(this.reactiveChart, latestReactiveActual);
+            this.checkAndUpdateScale(this.reactiveChart, latestReactiveRef);
         }
         
         // Update voltage chart
@@ -1321,7 +1345,7 @@ class VoltageExerciseApp {
                 if (updateRateElement) updateRateElement.value = config.simulation_interval;
 
                 const noiseLevelElement = document.getElementById('noise-level');
-                if (noiseLevelElement) noiseLevelElement.value = config.noise_level;
+                if (noiseLevelElement) noiseLevelElement.value = (config.noise_level * 100).toFixed(1); // Convert pu to %
 
                 const systemReactanceElement = document.getElementById('system-reactance');
                 if (systemReactanceElement) systemReactanceElement.value = config.system_reactance;
@@ -1364,6 +1388,10 @@ class VoltageExerciseApp {
                         value = 10;
                         element.value = value;
                     }
+                    // Convert noise level from percentage to per-unit for Python
+                    if (key === 'noise_level') {
+                        value = value / 100.0; // Convert % to pu
+                    }
                     params[key] = value;
                 }
             }
@@ -1391,6 +1419,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             const success = await app.initialize();
             if (success) {
                 console.log('Application initialized successfully');
+                
+                // Add resize handler to fix chart width issues
+                window.addEventListener('resize', () => {
+                    // Small delay to ensure layout is settled
+                    setTimeout(() => {
+                        if (app.chartManager && app.chartManager.voltageChart) {
+                            app.chartManager.voltageChart.resize();
+                        }
+                        if (app.chartManager && app.chartManager.reactiveChart) {
+                            app.chartManager.reactiveChart.resize();
+                        }
+                    }, 100);
+                });
+                
                 return true;
             }
             return false;

@@ -110,12 +110,11 @@
                         <button id="stop-simulation" title="Stop simulation (Space)" style="flex-grow: 1; padding: 0.4rem; background: var(--danger-color, #e74c3c); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Stop</button>
                         <button id="reset-simulation" title="Reset simulation (Shift+Space)" style="flex-grow: 1; padding: 0.4rem; background: var(--warning-color, #f39c12); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Reset</button>
                     </div>
-                    <div class="chart-controls" style="margin-top: 0.3rem;">
-                        <button id="reset-chart-scales" style="width: 100%; padding: 0.35rem; background: var(--secondary-color, #3498db); color: white; border: none; border-radius: 0.2rem; cursor: pointer; font-size: 0.8rem;">
-                            Reset Chart Scales
-                        </button>
-                    </div>
+                    
+                    
                 </div>
+
+                
             </div>
 
             <!-- Charts Container -->
@@ -125,6 +124,48 @@
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="reactive-chart" class="chart-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart Configurations Panel -->
+            <div class="control-panel" style="grid-area: chart-config;">
+                <div class="control-group">
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between;" onclick="toggleChartConfigPanel()">
+                        Chart Configurations
+                        <span id="chart-config-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
+                    </h3>
+                    <div id="chart-config-content" class="collapsed">
+                        <div class="chart-controls" style="margin-top: 0.3rem;">
+                            <button id="reset-chart-scales" style="width: 100%; padding: 0.35rem; background: var(--secondary-color, #3498db); color: white; border: none; border-radius: 0.2rem; cursor: pointer; font-size: 0.8rem; margin-bottom: 0.5rem;">
+                                Reset Chart Scales
+                            </button>
+                            
+                            <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
+                                <input type="checkbox" id="chart-expansion" checked style="margin-right: 0.5rem;">
+                                <label for="chart-expansion" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Expansion</label>
+                            </div>
+                            
+                            <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
+                                <input type="checkbox" id="chart-contraction" checked style="margin-right: 0.5rem;">
+                                <label for="chart-contraction" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Contraction</label>
+                            </div>
+                            
+                            <div class="config-item" style="margin-bottom: 0.3rem;">
+                                <label style="font-size: 0.8rem;">Tail Buffer (s):</label>
+                                <input type="number" id="tail-buffer" value="0.5" min="0" max="10" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
+                            </div>
+                            
+                            <div class="config-item" style="margin-bottom: 0.3rem;">
+                                <label style="font-size: 0.8rem;">Total Chart Time (s):</label>
+                                <input type="number" id="total-chart-time" value="15" min="5" max="50" step="1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
+                            </div>
+                            
+                            <div class="config-item" style="margin-bottom: 0.3rem;">
+                                <label style="font-size: 0.8rem;">Head Buffer (s):</label>
+                                <input type="number" id="head-buffer" value="1" min="0" max="5" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -417,7 +458,8 @@ class SimulationState:
         self.IINIT = np.conjugate(complex(self.PINIT, self.QINIT)) / self.VINIT
         self.VSYS = abs(self.VINIT - self.IINIT * complex(0, self.SYS_XE))
         
-        self.max_data_points = 200  # 10 seconds at 50ms intervals
+        self.data_time_span = 13.5  # Actual data time span: 15 - 1 - 0.5 = 13.5 seconds
+        self.max_data_points = int(self.data_time_span / self.DELT)  # Calculate based on time span
         self.time_vals = []
         self.voltage_vals = []
         self.voltage_ref_vals = []
@@ -453,8 +495,8 @@ class SimulationState:
         if 'simulation_interval' in param_dict:
             old_val = self.DELT * 1000.0
             self.DELT = param_dict['simulation_interval'] / 1000.0
-            # Recalculate max_data_points to maintain a 10-second window
-            self.max_data_points = int(10.0 / self.DELT)
+            # Recalculate max_data_points based on current data_time_span
+            self.max_data_points = int(self.data_time_span / self.DELT)
             print(f"Updated DELT: {old_val} -> {self.DELT * 1000.0} ms, new max_data_points: {self.max_data_points}")
             updated_params.append('simulation_interval')
         if 'noise_level' in param_dict:
@@ -483,6 +525,29 @@ class SimulationState:
             self.VCTRL_KI = param_dict['voltage_ki']
             print(f"Updated VCTRL_KI: {old_val} -> {self.VCTRL_KI}")
             updated_params.append('voltage_ki')
+        
+        # Chart data configuration parameters
+        if 'data_time_span' in param_dict:
+            old_val = self.data_time_span
+            self.data_time_span = param_dict['data_time_span']
+            # Recalculate max_data_points based on new time span
+            self.max_data_points = int(self.data_time_span / self.DELT)
+            print(f"Updated data_time_span: {old_val} -> {self.data_time_span}s, new max_data_points: {self.max_data_points}")
+            updated_params.append('data_time_span')
+        
+        if 'chart_total_time' in param_dict:
+            # Store chart configuration for reference but don't use in Python simulation
+            print(f"Chart total time: {param_dict['chart_total_time']}s")
+            updated_params.append('chart_total_time')
+        
+        if 'chart_head_buffer' in param_dict:
+            print(f"Chart head buffer: {param_dict['chart_head_buffer']}s")
+            updated_params.append('chart_head_buffer')
+        
+        if 'chart_tail_buffer' in param_dict:
+            print(f"Chart tail buffer: {param_dict['chart_tail_buffer']}s")
+            updated_params.append('chart_tail_buffer')
+            
         print(f"Python: Updated parameters: {updated_params}")
         return updated_params
     
@@ -497,7 +562,7 @@ class SimulationState:
         current_time = max(self.time_vals) if self.time_vals else 0
         while (self.time_vals and 
                len(self.time_vals) > 2 and 
-               self.time_vals[0] < current_time - 10.0):
+               self.time_vals[0] < current_time - self.data_time_span):
             self.time_vals.pop(0)
             self.voltage_vals.pop(0)
             self.voltage_ref_vals.pop(0)
@@ -639,6 +704,7 @@ def get_simulation_config():
         'voltage_ki': sim_state.VCTRL_KI,
         'active_power': sim_state.PINIT,
         'system_voltage': sim_state.VSYS,
+        'data_time_span': sim_state.data_time_span,
         'max_data_points': sim_state.max_data_points
     }
 
@@ -662,6 +728,19 @@ def validate_simulation_health():
         function toggleStatusPanel() {
             const content = document.getElementById('status-content');
             const toggle = document.getElementById('status-toggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                toggle.innerHTML = '▼';
+            } else {
+                content.classList.add('collapsed');
+                toggle.innerHTML = '▶';
+            }
+        }
+
+        function toggleChartConfigPanel() {
+            const content = document.getElementById('chart-config-content');
+            const toggle = document.getElementById('chart-config-toggle');
             
             if (content.classList.contains('collapsed')) {
                 content.classList.remove('collapsed');

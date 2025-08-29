@@ -299,7 +299,6 @@ class PyodideBridge {
     async initialize() {
         try {
             // Step 1: Load Pyodide with retry logic
-            console.log('Loading Pyodide...');
             this.loadingManager.setStep('step-pyodide', 'active', 'Loading Pyodide runtime...', 'Downloading WebAssembly runtime (~3MB)');
             
             const pyodideResult = await this.retryManager.withRetry(async (attempt) => {
@@ -398,14 +397,12 @@ class PyodideBridge {
             const newtonScript = document.getElementById('embedded-newton-raphson');
             if (newtonScript) {
                 this.pyodide.runPython(newtonScript.textContent);
-                console.log('Newton-Raphson solver loaded from embedded script');
             }
 
             // Load voltage control system from embedded script  
             const voltageScript = document.getElementById('embedded-voltage-control');
             if (voltageScript) {
                 this.pyodide.runPython(voltageScript.textContent);
-                console.log('Voltage control system loaded from embedded script');
             }
         } catch (error) {
             console.error('Failed to load Python modules:', error);
@@ -486,14 +483,30 @@ class ChartManager {
         this.voltageChart = null;
         this.reactiveChart = null;
         this.retryManager = new RetryManager();
+        this.chartExpansionEnabled = true;
+        this.chartContractionEnabled = true;
         
-        console.log('ChartManager initialized with Chart.js built-in scaling');
+        // Chart time window configuration
+        this.headBuffer = 1.0;         // Buffer ahead of current time (leading edge) (seconds)
+        this.totalChartTime = 15.0;    // Total time window shown (seconds)  
+        this.tailBuffer = 0.5;         // Buffer behind oldest data (trailing edge) (seconds)
+        
+        // Calculate actual data storage requirement
+        this.calculateDataRequirements();
+    }
+
+    calculateDataRequirements() {
+        // Python should only store the actual DATA portion - buffers are empty space
+        this.dataTimeSpan = this.totalChartTime - this.headBuffer - this.tailBuffer;
+        
+        // This is the same as the data time span
+        this.maxSimulationTime = this.dataTimeSpan;
+        
     }
 
     async initialize() {
         // Initialize voltage chart with retry logic
         const voltageResult = await this.retryManager.withRetry(async (attempt) => {
-            console.log(`Initializing voltage chart (attempt ${attempt})...`);
             
             // Check if Chart.js is available
             if (typeof Chart === 'undefined') {
@@ -509,7 +522,6 @@ class ChartManager {
 
         // Initialize reactive chart with retry logic
         const reactiveResult = await this.retryManager.withRetry(async (attempt) => {
-            console.log(`Initializing reactive chart (attempt ${attempt})...`);
             return this.initializeReactiveChart();
         }, RetryManager.getConfig('initialization'));
 
@@ -598,6 +610,8 @@ class ChartManager {
                 scales: {
                     x: {
                         type: 'linear',
+                        min: -this.tailBuffer,
+                        max: this.totalChartTime - this.tailBuffer,
                         title: {
                             display: true,
                             text: 'Time (seconds)'
@@ -614,12 +628,48 @@ class ChartManager {
                             display: true,
                             text: 'Voltage (pu)'
                         },
-                        // Full auto-scaling with custom padding
+                        // Original Chart.js auto-scaling with expansion/contraction control
                         afterDataLimits: (axis) => {
-                            const range = axis.max - axis.min;
-                            const padding = range * 0.35; // 35% padding
-                            axis.max += padding;
-                            axis.min -= padding;
+                            const chartManager = this;
+                            
+                            if (chartManager.chartExpansionEnabled && chartManager.chartContractionEnabled) {
+                                // Original behavior: full auto-scaling
+                                const range = axis.max - axis.min;
+                                const padding = range * 0.35; // 35% padding
+                                axis.max += padding;
+                                axis.min -= padding;
+                            } else {
+                                // Modified behavior: track manual bounds
+                                const range = axis.max - axis.min;
+                                const padding = range * 0.35; // 35% padding
+                                const newMin = axis.min - padding;
+                                const newMax = axis.max + padding;
+                                
+                                // Store original bounds if not set
+                                if (!axis._storedMin) axis._storedMin = newMin;
+                                if (!axis._storedMax) axis._storedMax = newMax;
+                                
+                                // Apply expansion logic
+                                if (chartManager.chartExpansionEnabled && newMin < axis._storedMin) {
+                                    axis._storedMin = newMin;
+                                }
+                                if (chartManager.chartExpansionEnabled && newMax > axis._storedMax) {
+                                    axis._storedMax = newMax;
+                                }
+                                
+                                // Apply contraction logic (simplified)
+                                if (chartManager.chartContractionEnabled) {
+                                    const currentRange = axis._storedMax - axis._storedMin;
+                                    const dataRange = newMax - newMin;
+                                    if (dataRange < currentRange * 0.8) {
+                                        axis._storedMin = newMin;
+                                        axis._storedMax = newMax;
+                                    }
+                                }
+                                
+                                axis.min = axis._storedMin;
+                                axis.max = axis._storedMax;
+                            }
                         }
                     }
                 },
@@ -708,6 +758,8 @@ class ChartManager {
                 scales: {
                     x: {
                         type: 'linear',
+                        min: -this.tailBuffer,
+                        max: this.totalChartTime - this.tailBuffer,
                         title: {
                             display: true,
                             text: 'Time (seconds)'
@@ -724,12 +776,48 @@ class ChartManager {
                             display: true,
                             text: 'Reactive Power (pu)'
                         },
-                        // Full auto-scaling with custom padding
+                        // Original Chart.js auto-scaling with expansion/contraction control
                         afterDataLimits: (axis) => {
-                            const range = axis.max - axis.min;
-                            const padding = range * 0.45; // 45% padding
-                            axis.max += padding;
-                            axis.min -= padding;
+                            const chartManager = this;
+                            
+                            if (chartManager.chartExpansionEnabled && chartManager.chartContractionEnabled) {
+                                // Original behavior: full auto-scaling
+                                const range = axis.max - axis.min;
+                                const padding = range * 0.45; // 45% padding
+                                axis.max += padding;
+                                axis.min -= padding;
+                            } else {
+                                // Modified behavior: track manual bounds
+                                const range = axis.max - axis.min;
+                                const padding = range * 0.45; // 45% padding
+                                const newMin = axis.min - padding;
+                                const newMax = axis.max + padding;
+                                
+                                // Store original bounds if not set
+                                if (!axis._storedMin) axis._storedMin = newMin;
+                                if (!axis._storedMax) axis._storedMax = newMax;
+                                
+                                // Apply expansion logic
+                                if (chartManager.chartExpansionEnabled && newMin < axis._storedMin) {
+                                    axis._storedMin = newMin;
+                                }
+                                if (chartManager.chartExpansionEnabled && newMax > axis._storedMax) {
+                                    axis._storedMax = newMax;
+                                }
+                                
+                                // Apply contraction logic (simplified)
+                                if (chartManager.chartContractionEnabled) {
+                                    const currentRange = axis._storedMax - axis._storedMin;
+                                    const dataRange = newMax - newMin;
+                                    if (dataRange < currentRange * 0.8) {
+                                        axis._storedMin = newMin;
+                                        axis._storedMax = newMax;
+                                    }
+                                }
+                                
+                                axis.min = axis._storedMin;
+                                axis.max = axis._storedMax;
+                            }
                         }
                     }
                 },
@@ -763,6 +851,86 @@ class ChartManager {
         return { min, max };
     }
 
+    // Chart expansion/contraction control methods
+    setChartExpansion(enabled) {
+        this.chartExpansionEnabled = enabled;
+        this.refreshChartScaling();
+    }
+
+    setChartContraction(enabled) {
+        this.chartContractionEnabled = enabled;
+        this.refreshChartScaling();
+    }
+
+    refreshChartScaling() {
+        // Force chart updates to apply new scaling settings
+        if (this.voltageChart) {
+            this.voltageChart.update('none');
+        }
+        if (this.reactiveChart) {
+            this.reactiveChart.update('none');
+        }
+    }
+
+    // Chart time window configuration methods
+
+    setHeadBuffer(value) {
+        this.headBuffer = parseFloat(value);
+        this.calculateDataRequirements();
+        this.updateSimulationDataRequirements();
+    }
+
+    setTotalChartTime(value) {
+        this.totalChartTime = parseFloat(value);
+        this.calculateDataRequirements();
+        this.updateChartTimeWindows();
+        this.updateSimulationDataRequirements();
+    }
+
+    setTailBuffer(value) {
+        this.tailBuffer = parseFloat(value);
+        this.calculateDataRequirements();
+        this.updateSimulationDataRequirements();
+    }
+
+    updateChartTimeWindows() {
+        // Update both charts' initial time windows
+        const minTime = -this.tailBuffer;
+        const maxTime = this.totalChartTime - this.tailBuffer;
+
+        if (this.voltageChart) {
+            this.voltageChart.options.scales.x.min = minTime;
+            this.voltageChart.options.scales.x.max = maxTime;
+            this.voltageChart.update('none');
+        }
+        
+        if (this.reactiveChart) {
+            this.reactiveChart.options.scales.x.min = minTime;
+            this.reactiveChart.options.scales.x.max = maxTime;
+            this.reactiveChart.update('none');
+        }
+    }
+
+    updateSimulationDataRequirements() {
+        // Communicate data requirements to Python simulation
+        if (window.simulationController && window.simulationController.bridge.isInitialized) {
+            try {
+                // Python should only store data for the actual DATA portion, not the buffer areas
+                const actualDataSpan = this.totalChartTime - this.headBuffer - this.tailBuffer;
+                const params = {
+                    'data_time_span': actualDataSpan, // Only actual data, not buffers
+                    'chart_total_time': this.totalChartTime,
+                    'chart_head_buffer': this.headBuffer,
+                    'chart_tail_buffer': this.tailBuffer
+                };
+                window.simulationController.updateParameters(params);
+            } catch (error) {
+                console.warn('Could not update simulation data requirements:', error);
+            }
+        }
+    }
+
+
     // Clean scaling logic using dedicated engine
     updateChartScale(chart, tracker, chartName, currentValue) {
         if (!chart) return;
@@ -772,7 +940,6 @@ class ChartManager {
             max: chart.options.scales.y.max
         };
         
-        console.log(`[${chartName}] Current bounds: [${currentBounds.min.toFixed(3)}, ${currentBounds.max.toFixed(3)}], Value: ${currentValue.toFixed(3)}`);
         
         // Use scaling engine to determine action
         const decision = this.scalingEngine.calculateScaling(tracker, currentBounds, currentValue);
@@ -782,10 +949,8 @@ class ChartManager {
             chart.options.scales.y.min = decision.newBounds.min;
             chart.options.scales.y.max = decision.newBounds.max;
             this.visualFeedback.setOutOfRange(chart, false);
-            console.log(`[${chartName}] ${decision.action.toUpperCase()} to [${decision.newBounds.min.toFixed(3)}, ${decision.newBounds.max.toFixed(3)}] - ${decision.reason}`);
         } else if (decision.action === 'constrain') {
             this.visualFeedback.setOutOfRange(chart, true);
-            console.log(`[${chartName}] CONSTRAINED - ${decision.reason}`);
         } else {
             this.visualFeedback.setOutOfRange(chart, tracker.isOutOfRange);
         }
@@ -843,16 +1008,33 @@ class ChartManager {
             }
         });
 
-        // Set x-axis range for 10-second rolling window with fixed precision
+        // Set x-axis range: initial fixed window, then rolling window with head and tail buffers
         const latestTime = roundedTimeData[roundedTimeData.length - 1] || 0;
-        const minTime = Math.max(0, Math.round((latestTime - 10) * 100) / 100);
-        const maxTime = Math.max(10, Math.round((latestTime + 0.1) * 100) / 100);
+        const transitionPoint = this.maxSimulationTime;
+        let minTime, maxTime;
+
+        if (latestTime < transitionPoint) {
+            // Initial fixed window: tail buffer before, then full chart time
+            minTime = -this.tailBuffer;
+            maxTime = this.totalChartTime - this.tailBuffer;
+        } else {
+            // Rolling window: show tail buffer before oldest data, head buffer after current time
+            // Find the oldest data point that should be visible
+            const dataTimeSpan = this.totalChartTime - this.headBuffer - this.tailBuffer;
+            const oldestDataTime = latestTime - dataTimeSpan;
+            
+            // Window shows: [tail buffer] + [data from oldestDataTime to latestTime] + [head buffer]
+            minTime = Math.max(0, Math.round((oldestDataTime - this.tailBuffer) * 100) / 100);
+            maxTime = Math.round((latestTime + this.headBuffer) * 100) / 100;
+            
+        }
 
         // Only update axis range if there's a significant change to prevent jarring rescaling
-        const currentMin = chart.options.scales.x.min || 0;
-        const currentMax = chart.options.scales.x.max || 10;
+        const currentMin = chart.options.scales.x.min;
+        const currentMax = chart.options.scales.x.max;
         
-        if (Math.abs(minTime - currentMin) > 0.05 || Math.abs(maxTime - currentMax) > 0.05) {
+        // Update if the new range is substantially different from the current one
+        if (Math.abs(minTime - currentMin) > 0.1 || Math.abs(maxTime - currentMax) > 0.1) {
             chart.options.scales.x.min = minTime;
             chart.options.scales.x.max = maxTime;
         }
@@ -862,52 +1044,59 @@ class ChartManager {
     }
 
     resetCharts() {
-        // Reset chart data
-        if (this.voltageChart) {
-            this.voltageChart.data.labels = [];
-            this.voltageChart.data.datasets.forEach(dataset => {
-                dataset.data = [];
-            });
-            
-            
-            this.voltageChart.update('none');
-        }
+        // Reset chart data and x-axis to initial state
+        [this.voltageChart, this.reactiveChart].forEach(chart => {
+            if (chart) {
+                // Clear data
+                chart.data.labels = [];
+                chart.data.datasets.forEach(dataset => {
+                    dataset.data = [];
+                });
 
-        if (this.reactiveChart) {
-            this.reactiveChart.data.labels = [];
-            this.reactiveChart.data.datasets.forEach(dataset => {
-                dataset.data = [];
-            });
-            
-            
-            this.reactiveChart.update('none');
-        }
+                // Reset x-axis to the initial configurable window
+                chart.options.scales.x.min = -this.tailBuffer;
+                chart.options.scales.x.max = this.totalChartTime - this.tailBuffer;
 
-        console.log('Charts reset');
+                // Update the chart to apply changes
+                chart.update('none');
+            }
+        });
+
     }
 
     resetChartScales() {
-        // Clear any manual scaling to restore full auto-scaling
+        // Clear the stored bounds to restore auto-scaling
         if (this.voltageChart) {
-            // Remove all manual scaling - let Chart.js auto-scale completely
-            delete this.voltageChart.options.scales.y.min;
-            delete this.voltageChart.options.scales.y.max;
-            delete this.voltageChart.options.scales.y.suggestedMin;
-            delete this.voltageChart.options.scales.y.suggestedMax;
+            const yAxis = this.voltageChart.options.scales.y;
+            delete yAxis.min;
+            delete yAxis.max;
+            delete yAxis.suggestedMin;
+            delete yAxis.suggestedMax;
+            // Clear stored bounds used by expansion/contraction logic
+            if (this.voltageChart.scales.y) {
+                delete this.voltageChart.scales.y._storedMin;
+                delete this.voltageChart.scales.y._storedMax;
+            }
             this.voltageChart.update('none');
         }
 
         if (this.reactiveChart) {
-            // Remove all manual scaling - let Chart.js auto-scale completely
-            delete this.reactiveChart.options.scales.y.min;
-            delete this.reactiveChart.options.scales.y.max;
-            delete this.reactiveChart.options.scales.y.suggestedMin;
-            delete this.reactiveChart.options.scales.y.suggestedMax;
+            const yAxis = this.reactiveChart.options.scales.y;
+            delete yAxis.min;
+            delete yAxis.max;
+            delete yAxis.suggestedMin;
+            delete yAxis.suggestedMax;
+            // Clear stored bounds used by expansion/contraction logic
+            if (this.reactiveChart.scales.y) {
+                delete this.reactiveChart.scales.y._storedMin;
+                delete this.reactiveChart.scales.y._storedMax;
+            }
             this.reactiveChart.update('none');
         }
         
-        console.log('Chart scales reset to full auto-scaling');
     }
+
+    
 
 
 }
@@ -927,7 +1116,6 @@ class SimulationController {
         if (this.isRunning || !this.bridge.isInitialized) {
             return;
         }
-        console.log('Starting simulation...');
         this.isRunning = true;
         this.updateSimulationStatus('Running');
         this.step(); // Initial call to start the loop
@@ -937,7 +1125,6 @@ class SimulationController {
         if (!this.isRunning) {
             return;
         }
-        console.log('Stopping simulation...');
         this.isRunning = false;
         this.updateSimulationStatus('Stopped');
         if (this.simulationTimer) {
@@ -980,7 +1167,6 @@ class SimulationController {
     updateParameters(params) {
         try {
             const updated = this.bridge.callPythonFunction('update_simulation_parameters', params);
-            console.log('Updated parameters:', updated);
 
             // Update simulation interval if changed
             if (params.simulation_interval) {
@@ -1020,7 +1206,6 @@ class SimulationController {
                 reactive_actual: 0.0,
                 converged: true
             });
-            console.log('Simulation reset. Restarting...');
             // Restart the simulation after a short delay
             setTimeout(() => this.start(), 100);
         } catch (error) {
@@ -1094,6 +1279,9 @@ class VoltageExerciseApp {
 
             // Initialize simulation controller
             this.simulationController = new SimulationController(this.bridge, this.chartManager);
+            
+            // Make simulation controller globally accessible for chart configuration updates
+            window.simulationController = this.simulationController;
 
             // Set up UI event handlers
             this.setupEventHandlers();
@@ -1197,12 +1385,10 @@ class VoltageExerciseApp {
             if (element) {
                 // Use 'input' event for immediate response as user types
                 element.addEventListener('input', () => {
-                    console.log(`Parameter ${id} changed to:`, element.value);
                     this.updateSimulationParameters();
                 });
                 // Also listen for 'change' event for when field loses focus
                 element.addEventListener('change', () => {
-                    console.log(`Parameter ${id} final change to:`, element.value);
                     this.updateSimulationParameters();
                 });
             } else {
@@ -1238,6 +1424,45 @@ class VoltageExerciseApp {
                 this.chartManager.resetChartScales();
             });
         }
+
+        // Chart expansion/contraction checkbox handlers
+        const chartExpansionCheckbox = document.getElementById('chart-expansion');
+        if (chartExpansionCheckbox) {
+            chartExpansionCheckbox.addEventListener('change', (e) => {
+                this.chartManager.setChartExpansion(e.target.checked);
+            });
+        }
+
+        const chartContractionCheckbox = document.getElementById('chart-contraction');
+        if (chartContractionCheckbox) {
+            chartContractionCheckbox.addEventListener('change', (e) => {
+                this.chartManager.setChartContraction(e.target.checked);
+            });
+        }
+
+        // Chart time window configuration handlers
+        const headBufferInput = document.getElementById('head-buffer');
+        if (headBufferInput) {
+            headBufferInput.addEventListener('input', (e) => {
+                this.chartManager.setHeadBuffer(e.target.value);
+            });
+        }
+
+        const totalChartTimeInput = document.getElementById('total-chart-time');
+        if (totalChartTimeInput) {
+            totalChartTimeInput.addEventListener('input', (e) => {
+                this.chartManager.setTotalChartTime(e.target.value);
+            });
+        }
+
+        const tailBufferInput = document.getElementById('tail-buffer');
+        if (tailBufferInput) {
+            tailBufferInput.addEventListener('input', (e) => {
+                this.chartManager.setTailBuffer(e.target.value);
+            });
+        }
+
+        
 
 
 
@@ -1304,13 +1529,11 @@ class VoltageExerciseApp {
             buildVersion.textContent = versionNumber;
         }
 
-        console.log(`Application version: ${versionNumber}`);
     }
     
     initializeParameterValues() {
         try {
             const config = this.bridge.callPythonFunction('get_simulation_config');
-            console.log('Initial simulation config:', config);
             
             // Update form inputs with actual Python values
             if (config) {
@@ -1372,7 +1595,6 @@ class VoltageExerciseApp {
 
 
         if (Object.keys(params).length > 0) {
-            console.log('Updating simulation parameters:', params);
             this.simulationController.updateParameters(params);
         }
 
@@ -1382,7 +1604,6 @@ class VoltageExerciseApp {
 
 // Initialize application when DOM is loaded with auto-retry
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM loaded, initializing Voltage Tuning Exercise...');
     
     const app = new VoltageExerciseApp();
     let retryCount = 0;

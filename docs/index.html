@@ -51,11 +51,33 @@
         </div>
 
         <div class="main-grid">
-            <!-- Control Panel -->
+            <!-- Controls Container -->
+            <div class="controls-container">
+                <!-- Simulation Control Panel -->
+                <div class="control-panel">
+                <div class="control-group">
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleSimulationControlPanel()">
+                        Simulation Control
+                        <span id="simulation-control-toggle" style="font-size: 0.8rem; opacity: 0.7;">▼</span>
+                    </h3>
+                    <div id="simulation-control-content">
+                    <div class="simulation-controls" style="display: flex; justify-content: space-between; gap: 4px;">
+                        <button id="start-simulation" title="Start simulation (Space)" style="flex-grow: 1; padding: 0.4rem; background: var(--success-color, #27ae60); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Start</button>
+                        <button id="stop-simulation" title="Stop simulation (Space)" style="flex-grow: 1; padding: 0.4rem; background: var(--danger-color, #e74c3c); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Stop</button>
+                        <button id="reset-simulation" title="Reset simulation (Shift+Space)" style="flex-grow: 1; padding: 0.4rem; background: var(--warning-color, #f39c12); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Reset</button>
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voltage Control Panel -->
             <div class="control-panel">
                 <div class="control-group">
-                    <h3>Voltage Control</h3>
-                    <div class="voltage-control">
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleVoltageControlPanel()">
+                        Voltage Control
+                        <span id="voltage-control-toggle" style="font-size: 0.8rem; opacity: 0.7;">▼</span>
+                    </h3>
+                    <div id="voltage-control-content" class="voltage-control">
                         <div class="voltage-display">
                             <span id="voltage-display">1.00</span> pu
                         </div>
@@ -72,9 +94,16 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
+            <!-- System Parameters Panel -->
+            <div class="control-panel">
                 <div class="control-group">
-                    <h3>System Parameters</h3>
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleSystemParametersPanel()">
+                        System Parameters
+                        <span id="system-parameters-toggle" style="font-size: 0.8rem; opacity: 0.7;">▼</span>
+                    </h3>
+                    <div id="system-parameters-content">
                     <div class="config-item">
                         <label>Update Rate (ms):</label>
                         <input type="number" id="update-rate" value="50" min="10" max="1000" step="10">
@@ -99,22 +128,92 @@
                         <label>Voltage Ki:</label>
                         <input type="number" id="voltage-ki" value="50.0" min="1.0" max="200.0" step="1.0">
                     </div>
-                </div>
-
-
-
-                <div class="control-group">
-                    <h3>Simulation Control</h3>
-                    <div class="simulation-controls" style="display: flex; justify-content: space-between; gap: 4px;">
-                        <button id="start-simulation" title="Start simulation (Space)" style="flex-grow: 1; padding: 0.4rem; background: var(--success-color, #27ae60); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Start</button>
-                        <button id="stop-simulation" title="Stop simulation (Space)" style="flex-grow: 1; padding: 0.4rem; background: var(--danger-color, #e74c3c); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Stop</button>
-                        <button id="reset-simulation" title="Reset simulation (Shift+Space)" style="flex-grow: 1; padding: 0.4rem; background: var(--warning-color, #f39c12); color: white; border: none; border-radius: 0.3rem; cursor: pointer; font-size: 0.85rem;">Reset</button>
                     </div>
-                    
-                    
+                </div>
+            </div>
+            
+                <!-- Chart Configurations Panel -->
+                <div class="control-panel">
+                    <div class="control-group">
+                        <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleChartConfigPanel()">
+                            Chart Configurations
+                            <span id="chart-config-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
+                        </h3>
+                        <div id="chart-config-content" class="collapsed">
+                            <div class="chart-controls" style="margin-top: 0.3rem;">
+                                <button id="reset-chart-scales" style="width: 100%; padding: 0.35rem; background: var(--secondary-color, #3498db); color: white; border: none; border-radius: 0.2rem; cursor: pointer; font-size: 0.8rem; margin-bottom: 0.5rem;">
+                                    Reset Chart Scales
+                                </button>
+                                
+                                <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
+                                    <input type="checkbox" id="chart-expansion" checked style="margin-right: 0.5rem;">
+                                    <label for="chart-expansion" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Expansion</label>
+                                </div>
+                                
+                                <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
+                                    <input type="checkbox" id="chart-contraction" checked style="margin-right: 0.5rem;">
+                                    <label for="chart-contraction" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Contraction</label>
+                                </div>
+                                
+                                <div class="config-item" style="margin-bottom: 0.3rem;">
+                                    <label style="font-size: 0.8rem;">Tail Buffer (s):</label>
+                                    <input type="number" id="tail-buffer" value="0.5" min="0" max="10" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
+                                </div>
+                                
+                                <div class="config-item" style="margin-bottom: 0.3rem;">
+                                    <label style="font-size: 0.8rem;">Total Chart Time (s):</label>
+                                    <input type="number" id="total-chart-time" value="15" min="5" max="50" step="1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
+                                </div>
+                                
+                                <div class="config-item" style="margin-bottom: 0.3rem;">
+                                    <label style="font-size: 0.8rem;">Head Buffer (s):</label>
+                                    <input type="number" id="head-buffer" value="1" min="0" max="5" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                
+                <!-- System Status Panel -->
+                <div class="status-panel">
+                    <h3 style="color: var(--primary-color); margin-bottom: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; border-bottom: 2px solid var(--secondary-color); padding-bottom: 0.05rem;" onclick="toggleStatusPanel()">
+                        System Status
+                        <span id="status-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
+                    </h3>
+                    <div id="status-content" class="status-content collapsed">
+                    <div class="status-item">
+                        <span class="status-label">
+                            <span id="status-indicator" class="status-indicator stopped"></span>
+                            Simulation
+                        </span>
+                        <span id="simulation-status" class="status-value">Stopped</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Current Time</span>
+                        <span id="current-time" class="status-value">0.00 s</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Iterations</span>
+                        <span id="iteration-count" class="status-value">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Power Flow</span>
+                        <span id="power-flow-status" class="status-value">Converged</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Voltage (Bus 2)</span>
+                        <span id="bus-voltage" class="status-value">1.000 pu</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Reactive Power</span>
+                        <span id="reactive-power" class="status-value">0.000 pu</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Version</span>
+                        <span id="build-version" class="status-value">__BUILD_VERSION__</span>
+                    </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Charts Container -->
@@ -124,89 +223,6 @@
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="reactive-chart" class="chart-canvas"></canvas>
-                </div>
-            </div>
-
-            <!-- Chart Configurations Panel -->
-            <div class="control-panel" style="grid-area: chart-config;">
-                <div class="control-group">
-                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between;" onclick="toggleChartConfigPanel()">
-                        Chart Configurations
-                        <span id="chart-config-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
-                    </h3>
-                    <div id="chart-config-content" class="collapsed">
-                        <div class="chart-controls" style="margin-top: 0.3rem;">
-                            <button id="reset-chart-scales" style="width: 100%; padding: 0.35rem; background: var(--secondary-color, #3498db); color: white; border: none; border-radius: 0.2rem; cursor: pointer; font-size: 0.8rem; margin-bottom: 0.5rem;">
-                                Reset Chart Scales
-                            </button>
-                            
-                            <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
-                                <input type="checkbox" id="chart-expansion" checked style="margin-right: 0.5rem;">
-                                <label for="chart-expansion" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Expansion</label>
-                            </div>
-                            
-                            <div class="chart-option" style="display: flex; align-items: center; margin-bottom: 0.3rem;">
-                                <input type="checkbox" id="chart-contraction" checked style="margin-right: 0.5rem;">
-                                <label for="chart-contraction" style="font-size: 0.8rem; color: var(--text-color); cursor: pointer;">Chart Contraction</label>
-                            </div>
-                            
-                            <div class="config-item" style="margin-bottom: 0.3rem;">
-                                <label style="font-size: 0.8rem;">Tail Buffer (s):</label>
-                                <input type="number" id="tail-buffer" value="0.5" min="0" max="10" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
-                            </div>
-                            
-                            <div class="config-item" style="margin-bottom: 0.3rem;">
-                                <label style="font-size: 0.8rem;">Total Chart Time (s):</label>
-                                <input type="number" id="total-chart-time" value="15" min="5" max="50" step="1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
-                            </div>
-                            
-                            <div class="config-item" style="margin-bottom: 0.3rem;">
-                                <label style="font-size: 0.8rem;">Head Buffer (s):</label>
-                                <input type="number" id="head-buffer" value="1" min="0" max="5" step="0.1" style="width: 60px; padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Status Panel -->
-            <div class="status-panel">
-                <h3 style="color: var(--primary-color); margin-bottom: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between;" onclick="toggleStatusPanel()">
-                    System Status
-                    <span id="status-toggle" style="font-size: 0.8rem; opacity: 0.7;">▶</span>
-                </h3>
-                <div id="status-content" class="status-content collapsed">
-                <div class="status-item">
-                    <span class="status-label">
-                        <span id="status-indicator" class="status-indicator stopped"></span>
-                        Simulation
-                    </span>
-                    <span id="simulation-status" class="status-value">Stopped</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Current Time</span>
-                    <span id="current-time" class="status-value">0.00 s</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Iterations</span>
-                    <span id="iteration-count" class="status-value">0</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Power Flow</span>
-                    <span id="power-flow-status" class="status-value">Converged</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Voltage (Bus 2)</span>
-                    <span id="bus-voltage" class="status-value">1.000 pu</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Reactive Power</span>
-                    <span id="reactive-power" class="status-value">0.000 pu</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Version</span>
-                    <span id="build-version" class="status-value">__BUILD_VERSION__</span>
-                </div>
                 </div>
             </div>
         </div>
@@ -728,12 +744,15 @@ def validate_simulation_health():
         function toggleStatusPanel() {
             const content = document.getElementById('status-content');
             const toggle = document.getElementById('status-toggle');
+            const controlGroup = content.closest('.status-panel');
             
             if (content.classList.contains('collapsed')) {
                 content.classList.remove('collapsed');
+                controlGroup.classList.remove('content-collapsed');
                 toggle.innerHTML = '▼';
             } else {
                 content.classList.add('collapsed');
+                controlGroup.classList.add('content-collapsed');
                 toggle.innerHTML = '▶';
             }
         }
@@ -741,12 +760,63 @@ def validate_simulation_health():
         function toggleChartConfigPanel() {
             const content = document.getElementById('chart-config-content');
             const toggle = document.getElementById('chart-config-toggle');
+            const controlGroup = content.closest('.control-group');
             
             if (content.classList.contains('collapsed')) {
                 content.classList.remove('collapsed');
+                controlGroup.classList.remove('content-collapsed');
                 toggle.innerHTML = '▼';
             } else {
                 content.classList.add('collapsed');
+                controlGroup.classList.add('content-collapsed');
+                toggle.innerHTML = '▶';
+            }
+        }
+
+        function toggleVoltageControlPanel() {
+            const content = document.getElementById('voltage-control-content');
+            const toggle = document.getElementById('voltage-control-toggle');
+            const controlGroup = content.closest('.control-group');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                controlGroup.classList.remove('content-collapsed');
+                toggle.innerHTML = '▼';
+            } else {
+                content.classList.add('collapsed');
+                controlGroup.classList.add('content-collapsed');
+                toggle.innerHTML = '▶';
+            }
+        }
+
+        function toggleSystemParametersPanel() {
+            const content = document.getElementById('system-parameters-content');
+            const toggle = document.getElementById('system-parameters-toggle');
+            const controlGroup = content.closest('.control-group');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                controlGroup.classList.remove('content-collapsed');
+                toggle.innerHTML = '▼';
+            } else {
+                content.classList.add('collapsed');
+                controlGroup.classList.add('content-collapsed');
+                toggle.innerHTML = '▶';
+            }
+        }
+
+        function toggleSimulationControlPanel() {
+            const content = document.getElementById('simulation-control-content');
+            const toggle = document.getElementById('simulation-control-toggle');
+            const controlGroup = content.closest('.control-group');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                controlGroup.classList.remove('content-collapsed');
+                toggle.innerHTML = '▼';
+            } else {
+                content.classList.add('collapsed');
+                controlGroup.classList.add('content-collapsed');
                 toggle.innerHTML = '▶';
             }
         }

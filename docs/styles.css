@@ -445,19 +445,40 @@ body {
     box-shadow: var(--shadow);
     max-width: 100%;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+/* Two-column layout */
+.charts-container.two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    align-items: start;
 }
 
 .chart-wrapper {
-    margin-bottom: 0.6rem;
     position: relative;
     background: var(--card-background);
     border-radius: 0.5rem;
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
     padding: 0.3rem;
+    min-height: 280px;
 }
 
-.chart-wrapper:last-child {
+/* Ensure charts maintain proper dimensions in grid */
+.charts-container.two-columns .chart-wrapper {
     margin-bottom: 0;
+    width: 100%;
+    min-width: 0; /* Important for grid item sizing */
+}
+
+/* Ensure canvas fills wrapper properly in both layouts */
+.chart-wrapper .chart-canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 250px;
 }
 
 .chart-title {

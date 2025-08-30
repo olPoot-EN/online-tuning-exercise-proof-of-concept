@@ -1794,6 +1794,17 @@ class VoltageExerciseApp {
                     this.toggleControlsPanel();
                 }
             }
+            
+            // Chart layout toggle keys
+            if (e.key === '1') {
+                e.preventDefault();
+                this.setChartLayout('single');
+            }
+            
+            if (e.key === '2') {
+                e.preventDefault();
+                this.setChartLayout('two-columns');
+            }
         });
 
         // Panel toggle button handler
@@ -1975,6 +1986,50 @@ class VoltageExerciseApp {
                 this.chartManager.reactiveChart.resize();
             }
         }, 350); // Wait for CSS transition to complete
+    }
+
+    setChartLayout(layout) {
+        const chartsContainer = document.querySelector('.charts-container');
+        
+        if (!chartsContainer) {
+            console.warn('Charts container not found');
+            return;
+        }
+        
+        if (layout === 'single') {
+            chartsContainer.classList.remove('two-columns');
+            console.log('Chart layout set to single column');
+        } else if (layout === 'two-columns') {
+            chartsContainer.classList.add('two-columns');
+            console.log('Chart layout set to two columns');
+        } else {
+            console.warn('Unknown chart layout:', layout);
+            return;
+        }
+        
+        // Trigger chart resize after layout change with multiple attempts
+        const resizeCharts = () => {
+            if (this.chartManager) {
+                try {
+                    if (this.chartManager.voltageChart) {
+                        this.chartManager.voltageChart.resize();
+                        this.chartManager.voltageChart.update('none');
+                    }
+                    if (this.chartManager.reactiveChart) {
+                        this.chartManager.reactiveChart.resize();
+                        this.chartManager.reactiveChart.update('none');
+                    }
+                    console.log('Charts resized for layout:', layout);
+                } catch (error) {
+                    console.warn('Chart resize error:', error);
+                }
+            }
+        };
+        
+        // Multiple resize attempts to ensure proper rendering
+        setTimeout(resizeCharts, 50);   // Quick first attempt
+        setTimeout(resizeCharts, 200);  // Second attempt after CSS transition
+        setTimeout(resizeCharts, 500);  // Final attempt to ensure visibility
     }
 
     saveMenuStates() {

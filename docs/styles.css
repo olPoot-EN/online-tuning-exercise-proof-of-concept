@@ -153,49 +153,54 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1000;
-    background: rgba(255, 255, 255, 0.7) !important;
-    background-color: rgba(255, 255, 255, 0.7) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-    padding: 1.2rem;
-    border-radius: 0.4rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    max-width: 500px;
-    max-height: 70vh;
+    background: rgba(30, 30, 35, 0.95) !important;
+    background-color: rgba(30, 30, 35, 0.95) !important;
+    backdrop-filter: blur(2px) !important;
+    -webkit-backdrop-filter: blur(2px) !important;
+    padding: 0.8rem;
+    border-radius: 0.6rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    max-width: 420px;
+    max-height: 80vh;
     overflow-y: auto;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
 }
 
 .keyboard-shortcuts-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.8rem;
-    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     padding-bottom: 0.3rem;
 }
 
 .keyboard-shortcuts-header h2 {
-    font-size: 1.2rem;
+    font-size: 1rem;
     margin: 0;
+    color: white;
+    font-weight: 600;
 }
 
 .keyboard-shortcuts-close {
     background: none;
     border: none;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     cursor: pointer;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.7);
     padding: 0.1rem 0.3rem;
-    border-radius: 0.2rem;
+    border-radius: 0.3rem;
+    transition: all 0.2s ease;
 }
 
 .keyboard-shortcuts-close:hover {
-    background: var(--border-color);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
 }
 
 .shortcuts-section {
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.6rem;
 }
 
 .shortcuts-section:last-child {
@@ -203,20 +208,22 @@ body {
 }
 
 .shortcuts-section h3 {
-    color: var(--primary-color);
-    margin-bottom: 0.4rem;
-    font-size: 0.95rem;
-    border-left: 2px solid var(--accent-color);
+    color: #60a5fa;
+    margin-bottom: 0.3rem;
+    font-size: 0.85rem;
+    border-left: 2px solid #60a5fa;
     padding-left: 0.4rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .shortcut-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.25rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 0.2rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .shortcut-item:last-child {
@@ -225,27 +232,29 @@ body {
 
 .shortcut-keys {
     display: flex;
-    gap: 0.2rem;
-    min-width: 80px;
+    gap: 0.15rem;
+    min-width: 70px;
 }
 
 .shortcut-key {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
     color: white;
-    padding: 0.15rem 0.4rem;
-    border-radius: 0.2rem;
-    font-family: monospace;
-    font-size: 0.8rem;
-    font-weight: bold;
-    min-width: 1.8rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.25rem;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    min-width: 1.4rem;
     text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .shortcut-description {
     flex-grow: 1;
-    margin-left: 0.8rem;
-    color: var(--text-color);
-    font-size: 0.9rem;
+    margin-left: 0.6rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.8rem;
 }
 
 .main-grid {
@@ -479,6 +488,86 @@ body {
     width: 100% !important;
     height: auto !important;
     max-height: 250px;
+}
+
+/* Chart maximization styles */
+.charts-container.maximized {
+    display: block !important; /* Override grid layout when maximized */
+}
+
+.chart-wrapper.maximized {
+    position: fixed;
+    top: 80px;
+    left: 20px;
+    right: 20px;
+    bottom: 20px;
+    z-index: 1000;
+    background: var(--card-background);
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.4);
+    min-height: auto;
+    height: auto;
+    border-radius: 0.8rem;
+    padding: 1rem;
+}
+
+.chart-wrapper.maximized .chart-canvas {
+    max-height: none !important;
+    height: calc(100vh - 200px) !important;
+}
+
+.chart-wrapper:not(.maximized) {
+    display: block;
+}
+
+.charts-container.maximized .chart-wrapper:not(.maximized) {
+    display: none; /* Hide other charts when one is maximized */
+}
+
+/* Maximization indicator */
+.chart-wrapper.maximized::before {
+    content: "Press M or ESC to minimize • Double-click to minimize";
+    position: absolute;
+    top: 0.5rem;
+    left: 1rem;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.3rem;
+    font-weight: 500;
+    z-index: 1001;
+}
+
+/* Chart interactivity feedback */
+.chart-wrapper {
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, border 0.2s ease;
+}
+
+.chart-wrapper:hover {
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.3);
+}
+
+.chart-wrapper.clicked {
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+}
+
+.chart-wrapper.clicked::after {
+    content: "Double-click to maximize";
+    position: absolute;
+    bottom: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.2rem;
+    font-weight: 500;
+    z-index: 100;
+    pointer-events: none;
 }
 
 .chart-title {

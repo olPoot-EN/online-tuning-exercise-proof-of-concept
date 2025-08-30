@@ -1725,9 +1725,10 @@ class VoltageExerciseApp {
                 }
             }
             
-            // Arrow key voltage adjustment shortcuts
-            if (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight' || 
-                e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            // Arrow key voltage adjustment shortcuts (only when no modifier keys are pressed)
+            if ((e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight' || 
+                e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') &&
+                !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
                 e.preventDefault(); // Prevent page scroll
                 
                 const voltageSlider = document.getElementById('voltage-slider');
@@ -1770,6 +1771,59 @@ class VoltageExerciseApp {
                 }
             }
             
+            // Debug: Log all Ctrl/Cmd + Arrow key combinations
+            if ((e.code === 'ArrowUp' || e.key === 'ArrowUp' || e.code === 'ArrowDown' || e.key === 'ArrowDown') && (e.ctrlKey || e.metaKey)) {
+                console.log('Modifier + Arrow detected:', {
+                    key: e.key,
+                    code: e.code,
+                    ctrlKey: e.ctrlKey,
+                    metaKey: e.metaKey,
+                    altKey: e.altKey,
+                    shiftKey: e.shiftKey
+                });
+            }
+            
+            // Ctrl+Up/Down for instant min/max voltage setpoint (try both ctrlKey and metaKey)
+            if ((e.code === 'ArrowUp' || e.key === 'ArrowUp') && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                console.log('Ctrl/Cmd+Up detected - setting to maximum');
+                const voltageSlider = document.getElementById('voltage-slider');
+                if (voltageSlider) {
+                    const maxValue = 110; // Maximum voltage
+                    voltageSlider.value = maxValue;
+                    this.simulationController.setVoltageReference(maxValue);
+                    
+                    // Update voltage display
+                    const voltageDisplay = document.getElementById('voltage-display');
+                    if (voltageDisplay) {
+                        voltageDisplay.textContent = maxValue.toFixed(1);
+                    }
+                    console.log('Voltage set to maximum: 110%');
+                } else {
+                    console.log('Voltage slider not found!');
+                }
+            }
+            
+            if ((e.code === 'ArrowDown' || e.key === 'ArrowDown') && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                console.log('Ctrl/Cmd+Down detected - setting to minimum');
+                const voltageSlider = document.getElementById('voltage-slider');
+                if (voltageSlider) {
+                    const minValue = 90; // Minimum voltage
+                    voltageSlider.value = minValue;
+                    this.simulationController.setVoltageReference(minValue);
+                    
+                    // Update voltage display
+                    const voltageDisplay = document.getElementById('voltage-display');
+                    if (voltageDisplay) {
+                        voltageDisplay.textContent = minValue.toFixed(1);
+                    }
+                    console.log('Voltage set to minimum: 90%');
+                } else {
+                    console.log('Voltage slider not found!');
+                }
+            }
+            
             // Question mark key to show keyboard shortcuts
             if (e.key === '?' || (e.shiftKey && e.key === '/')) {
                 e.preventDefault();
@@ -1781,14 +1835,17 @@ class VoltageExerciseApp {
                 }
             }
             
-            // ESC key behavior - close modal first, then toggle sidebar
+            // ESC key behavior - close modal first, then minimize charts, then toggle sidebar
             if (e.code === 'Escape' || e.key === 'Escape') {
                 e.preventDefault();
                 const keyboardShortcutsModal = document.getElementById('keyboard-shortcuts-modal');
+                const maximizedChart = document.querySelector('.chart-wrapper.maximized');
                 
-                // If modal is open, close it first
+                // Priority order: 1) Close modal, 2) Minimize chart, 3) Toggle sidebar
                 if (keyboardShortcutsModal && keyboardShortcutsModal.style.display === 'block') {
                     keyboardShortcutsModal.style.display = 'none';
+                } else if (maximizedChart) {
+                    this.minimizeAllCharts();
                 } else {
                     // Otherwise toggle sidebar
                     this.toggleControlsPanel();
@@ -1804,6 +1861,19 @@ class VoltageExerciseApp {
             if (e.key === '2') {
                 e.preventDefault();
                 this.setChartLayout('two-columns');
+            }
+            
+            // M key for chart maximization toggle
+            if (e.key === 'm' || e.key === 'M') {
+                e.preventDefault();
+                // Check if any chart is currently maximized
+                const maximizedChart = document.querySelector('.chart-wrapper.maximized');
+                if (maximizedChart) {
+                    this.minimizeAllCharts();
+                } else {
+                    // Default to maximizing the voltage chart
+                    this.maximizeChart('voltage-chart');
+                }
             }
         });
 
@@ -1824,13 +1894,7 @@ class VoltageExerciseApp {
             keyboardShortcutsBtn.addEventListener('click', () => {
                 console.log('Modal button clicked');
                 keyboardShortcutsModal.style.display = 'block';
-                
-                // Very transparent with minimal blur, dark blue border and text
-                keyboardShortcutsModal.style.setProperty('background', 'rgba(60, 60, 60, 0.5)', 'important');
-                keyboardShortcutsModal.style.setProperty('background-color', 'rgba(60, 60, 60, 0.5)', 'important');
-                keyboardShortcutsModal.style.backdropFilter = 'blur(0.1px)';
-                keyboardShortcutsModal.style.color = '#1e3a8a';
-                keyboardShortcutsModal.style.border = '1px solid #1e3a8a';
+                // Let CSS handle all the styling for consistency
             });
         }
 
@@ -1848,6 +1912,72 @@ class VoltageExerciseApp {
                 }
             });
         }
+
+        // Chart interaction handlers
+        const voltageChart = document.getElementById('voltage-chart');
+        const reactiveChart = document.getElementById('reactive-chart');
+        
+        const addChartInteraction = (chartCanvas, chartId) => {
+            if (!chartCanvas) return;
+            
+            const chartWrapper = chartCanvas.closest('.chart-wrapper');
+            if (!chartWrapper) return;
+            
+            // Single click feedback
+            chartWrapper.addEventListener('click', (e) => {
+                // Remove clicked class from all charts
+                document.querySelectorAll('.chart-wrapper.clicked').forEach(wrapper => {
+                    wrapper.classList.remove('clicked');
+                });
+                
+                // Add clicked class to this chart
+                chartWrapper.classList.add('clicked');
+                
+                // Remove clicked class after 3 seconds
+                setTimeout(() => {
+                    chartWrapper.classList.remove('clicked');
+                }, 3000);
+            });
+            
+            // Double click maximization
+            chartCanvas.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                chartWrapper.classList.remove('clicked'); // Remove clicked feedback immediately
+                this.toggleChartMaximization(chartId);
+            });
+        };
+        
+        addChartInteraction(voltageChart, 'voltage-chart');
+        addChartInteraction(reactiveChart, 'reactive-chart');
+
+        // Chart zoom functionality with mouse wheel
+        const addZoomToChart = (chartCanvas, chartType) => {
+            if (!chartCanvas) return;
+            
+            chartCanvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                
+                if (!this.chartManager) return;
+                
+                const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8; // Zoom out or in
+                const currentTotalTime = this.chartManager.totalChartTime;
+                const newTotalTime = Math.max(5, Math.min(50, currentTotalTime * zoomFactor));
+                
+                if (newTotalTime !== currentTotalTime) {
+                    console.log(`Zooming ${chartType} chart: ${currentTotalTime}s -> ${newTotalTime}s`);
+                    this.chartManager.setTotalChartTime(newTotalTime);
+                    
+                    // Update the input field in the UI
+                    const totalTimeInput = document.getElementById('total-chart-time');
+                    if (totalTimeInput) {
+                        totalTimeInput.value = newTotalTime;
+                    }
+                }
+            });
+        };
+        
+        addZoomToChart(voltageChart, 'voltage');
+        addZoomToChart(reactiveChart, 'reactive');
 
         // Window event handlers
         window.addEventListener('beforeunload', () => {
@@ -2030,6 +2160,75 @@ class VoltageExerciseApp {
         setTimeout(resizeCharts, 50);   // Quick first attempt
         setTimeout(resizeCharts, 200);  // Second attempt after CSS transition
         setTimeout(resizeCharts, 500);  // Final attempt to ensure visibility
+    }
+
+    maximizeChart(chartId) {
+        const chartWrapper = document.querySelector(`#${chartId}`).closest('.chart-wrapper');
+        const chartsContainer = document.querySelector('.charts-container');
+        
+        if (!chartWrapper || !chartsContainer) {
+            console.warn('Chart elements not found for maximization');
+            return;
+        }
+        
+        // Clear any existing maximized charts
+        document.querySelectorAll('.chart-wrapper.maximized').forEach(wrapper => {
+            wrapper.classList.remove('maximized');
+        });
+        chartsContainer.classList.remove('maximized');
+        
+        // Maximize the target chart
+        chartWrapper.classList.add('maximized');
+        chartsContainer.classList.add('maximized');
+        
+        // Resize chart after maximization
+        setTimeout(() => {
+            if (this.chartManager) {
+                const chartInstance = chartId === 'voltage-chart' ? 
+                    this.chartManager.voltageChart : this.chartManager.reactiveChart;
+                if (chartInstance) {
+                    chartInstance.resize();
+                    chartInstance.update('none');
+                }
+            }
+        }, 100);
+        
+        console.log(`Chart maximized: ${chartId}`);
+    }
+
+    minimizeAllCharts() {
+        const chartWrappers = document.querySelectorAll('.chart-wrapper.maximized');
+        const chartsContainer = document.querySelector('.charts-container');
+        
+        chartWrappers.forEach(wrapper => wrapper.classList.remove('maximized'));
+        if (chartsContainer) {
+            chartsContainer.classList.remove('maximized');
+        }
+        
+        // Resize all charts after minimization
+        setTimeout(() => {
+            if (this.chartManager) {
+                if (this.chartManager.voltageChart) {
+                    this.chartManager.voltageChart.resize();
+                    this.chartManager.voltageChart.update('none');
+                }
+                if (this.chartManager.reactiveChart) {
+                    this.chartManager.reactiveChart.resize();
+                    this.chartManager.reactiveChart.update('none');
+                }
+            }
+        }, 100);
+        
+        console.log('All charts minimized');
+    }
+
+    toggleChartMaximization(chartId) {
+        const chartWrapper = document.querySelector(`#${chartId}`).closest('.chart-wrapper');
+        if (chartWrapper && chartWrapper.classList.contains('maximized')) {
+            this.minimizeAllCharts();
+        } else {
+            this.maximizeChart(chartId);
+        }
     }
 
     saveMenuStates() {

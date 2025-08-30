@@ -395,7 +395,7 @@ body {
     cursor: pointer;
     border: 1px solid white;
     box-shadow: var(--shadow);
-    margin-top: -0.5px; /* Fine-tune alignment for Chrome/Edge */
+    margin-top: -1px; /* Fine-tune alignment for Chrome/Edge */
 }
 
 .voltage-slider::-moz-range-thumb {

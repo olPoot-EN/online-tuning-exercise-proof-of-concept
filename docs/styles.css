@@ -405,6 +405,21 @@ body {
     cursor: pointer;
     border: 1px solid white;
     box-shadow: var(--shadow);
+    /* Firefox-specific fixes for alignment */
+    -moz-appearance: none;
+    appearance: none;
+    margin-top: -5px; /* Center the thumb vertically */
+}
+
+/* Firefox track styling to ensure proper alignment */
+.voltage-slider::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, 
+        #bbb 0%, #bbb 49.5%,
+        #666 49.5%, #666 50.5%,
+        #bbb 50.5%, #bbb 100%);
+    border: 1px solid #999;
 }
 
 .voltage-range-labels {

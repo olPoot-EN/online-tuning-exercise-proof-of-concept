@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Bottom Padding Test</title>
+    <style>
+        body {
+            margin: 20px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .test-container {
+            width: 400px;
+            height: 300px;
+            border: 2px solid red;
+            background: #f0f0f0;
+            margin: 20px 0;
+            padding: 10px;
+        }
+        
+        .chart-wrapper {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border: 1px solid blue;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        h3 {
+            margin: 10px 0 5px 0;
+        }
+        
+        .controls {
+            margin: 10px 0;
+        }
+        
+        .controls input {
+            margin: 0 5px;
+            width: 60px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chart.js Bottom Padding Test</h1>
+    <p>Red border = container, Blue border = chart area</p>
+    
+    <div class="controls">
+        <label>Layout Bottom Padding: <input type="number" id="layoutPadding" value="5" step="1"></label>
+        <label>Title Bottom Padding: <input type="number" id="titlePadding" value="4" step="1"></label>
+        <label>Tick Padding: <input type="number" id="tickPadding" value="5" step="1"></label>
+        <button onclick="updateChart()">Update Chart</button>
+    </div>
+    
+    <h3>Test Chart:</h3>
+    <div class="test-container">
+        <div class="chart-wrapper">
+            <canvas id="testChart"></canvas>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let chart;
+        
+        function createChart() {
+            const ctx = document.getElementById('testChart').getContext('2d');
+            
+            // Sample data
+            const timeData = [0, 2, 4, 6, 8, 10];
+            const voltageData = [1.0, 1.05, 0.98, 1.02, 0.99, 1.01];
+            
+            const layoutPadding = parseInt(document.getElementById('layoutPadding').value);
+            const titlePadding = parseInt(document.getElementById('titlePadding').value);
+            const tickPadding = parseInt(document.getElementById('tickPadding').value);
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeData,
+                    datasets: [{
+                        label: 'Voltage',
+                        data: voltageData,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { 
+                            top: 0, 
+                            bottom: layoutPadding, 
+                            left: 0, 
+                            right: 0 
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Test Chart',
+                            font: { size: 12 }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Time (seconds)',
+                                font: { size: 11 },
+                                padding: {
+                                    top: 4,
+                                    bottom: titlePadding
+                                }
+                            },
+                            ticks: {
+                                font: { size: 10 },
+                                padding: tickPadding
+                            },
+                            grid: {
+                                color: 'rgba(128, 128, 128, 0.2)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Voltage (pu)',
+                                font: { size: 11 }
+                            },
+                            ticks: {
+                                font: { size: 10 }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 0
+                    }
+                }
+            });
+        }
+        
+        function updateChart() {
+            createChart();
+        }
+        
+        // Initialize
+        createChart();
+    </script>
+</body>
+</html>

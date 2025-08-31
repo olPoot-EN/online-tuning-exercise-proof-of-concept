@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voltage Tuning Exercise</title>
+    <title>Voltage Tuning Exercise - Phase 2 (5-Bus System)</title>
     
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -158,7 +158,7 @@
                     </div>
                     <div class="config-item">
                         <label>Noise Level (%):</label>
-                        <input type="number" id="noise-level" value="0.1" min="0" max="5.0" step="0.05">
+                        <input type="number" id="noise-level" value="0.2" min="0" max="5.0" step="0.1">
                     </div>
                     <div class="config-item">
                         <label>System Reactance (pu):</label>
@@ -167,6 +167,89 @@
                     <div class="config-item">
                         <label>Plant Time Constant (s):</label>
                         <input type="number" id="plant-time-constant" value="0.25" min="0.1" max="2.0" step="0.05">
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IBR Control Parameters Panel -->
+            <div class="control-panel">
+                <div class="control-group">
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleIbrControlPanel()">
+                        IBR Control Parameters
+                        <span id="ibr-control-toggle" style="font-size: 0.8rem; opacity: 0.7;">▼</span>
+                    </h3>
+                    <div id="ibr-control-content">
+                    <div class="config-item">
+                        <label>Control Mode:</label>
+                        <select id="control-mode" style="padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 0.2rem; font-size: 0.8rem;">
+                            <option value="0">REPC Style</option>
+                            <option value="1" selected>Q(V) Control</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label>Voltage Kp:</label>
+                        <input type="number" id="voltage-kp" value="0.5" min="0" max="10" step="0.1">
+                    </div>
+                    <div class="config-item">
+                        <label>Voltage Ki:</label>
+                        <input type="number" id="voltage-ki" value="0.2" min="0" max="5" step="0.1">
+                    </div>
+                    <div class="config-item">
+                        <label>Droop K Factor:</label>
+                        <input type="number" id="droop-factor" value="0.05" min="0" max="0.2" step="0.005">
+                    </div>
+                    <div class="config-item">
+                        <label>Deadband (pu):</label>
+                        <input type="number" id="voltage-deadband" value="0.005" min="0" max="0.05" step="0.001">
+                    </div>
+                    <div class="config-item">
+                        <label>Q Command Min (pu):</label>
+                        <input type="number" id="q-cmd-min" value="-0.4" min="-1" max="0" step="0.05">
+                    </div>
+                    <div class="config-item">
+                        <label>Q Command Max (pu):</label>
+                        <input type="number" id="q-cmd-max" value="0.4" min="0" max="1" step="0.05">
+                    </div>
+                    <div class="config-item">
+                        <label>Lag Time Constant (s):</label>
+                        <input type="number" id="voltage-lag" value="5.0" min="0.5" max="20" step="0.5">
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VRT Control Parameters Panel -->
+            <div class="control-panel">
+                <div class="control-group">
+                    <h3 style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;" onclick="toggleVrtControlPanel()">
+                        VRT Control Parameters
+                        <span id="vrt-control-toggle" style="font-size: 0.8rem; opacity: 0.7;">▼</span>
+                    </h3>
+                    <div id="vrt-control-content">
+                    <div class="config-item">
+                        <label>VRT Enable:</label>
+                        <input type="checkbox" id="vrt-enable" style="transform: scale(1.2);">
+                    </div>
+                    <div class="config-item">
+                        <label>K Factor:</label>
+                        <input type="number" id="inv-kfact" value="8.0" min="0" max="20" step="0.5">
+                    </div>
+                    <div class="config-item">
+                        <label>VRT Band (pu):</label>
+                        <input type="number" id="vrt-band" value="0.10" min="0.01" max="0.5" step="0.01">
+                    </div>
+                    <div class="config-item">
+                        <label>VRT Hysteresis (pu):</label>
+                        <input type="number" id="vrt-hysteresis" value="0.005" min="0.001" max="0.05" step="0.001">
+                    </div>
+                    <div class="config-item">
+                        <label>Plant Voltage TC (s):</label>
+                        <input type="number" id="tv-plant" value="0.20" min="0.05" max="2.0" step="0.05">
+                    </div>
+                    <div class="config-item">
+                        <label>PPC Feedback TC (s):</label>
+                        <input type="number" id="tvpq-ppc" value="0.5" min="0.1" max="5.0" step="0.1">
                     </div>
                     </div>
                 </div>
@@ -269,7 +352,7 @@
                         <span id="power-flow-status" class="status-value">Converged</span>
                     </div>
                     <div class="status-item" style="font-size: 0.8rem;">
-                        <span class="status-label">Voltage (Bus 2)</span>
+                        <span class="status-label">Voltage (Bus 5)</span>
                         <span id="bus-voltage" class="status-value">1.000 pu</span>
                     </div>
                     <div class="status-item" style="font-size: 0.8rem;">
@@ -286,11 +369,35 @@
 
             <!-- Charts Container -->
             <div class="charts-container">
+                <!-- Row 1: Voltage Charts -->
                 <div class="chart-wrapper">
-                    <canvas id="voltage-chart" class="chart-canvas"></canvas>
+                    <canvas id="poi-voltage-chart" class="chart-canvas"></canvas>
                 </div>
                 <div class="chart-wrapper">
-                    <canvas id="reactive-chart" class="chart-canvas"></canvas>
+                    <canvas id="collector-voltage-chart" class="chart-canvas"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="inverter-voltage-chart" class="chart-canvas"></canvas>
+                </div>
+                <!-- Row 2: Active Power Charts -->
+                <div class="chart-wrapper">
+                    <canvas id="poi-active-chart" class="chart-canvas"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="collector-active-chart" class="chart-canvas"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="inverter-active-chart" class="chart-canvas"></canvas>
+                </div>
+                <!-- Row 3: Reactive Power Charts -->
+                <div class="chart-wrapper">
+                    <canvas id="poi-reactive-chart" class="chart-canvas"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="collector-reactive-chart" class="chart-canvas"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="inverter-reactive-chart" class="chart-canvas"></canvas>
                 </div>
             </div>
         </div>
@@ -412,6 +519,12 @@
                         <span class="shortcut-key">2</span>
                     </div>
                     <div class="shortcut-description">Set charts to two column layout</div>
+                </div>
+                <div class="shortcut-item">
+                    <div class="shortcut-keys">
+                        <span class="shortcut-key">3</span>
+                    </div>
+                    <div class="shortcut-description">Set charts to 3x3 grid (auto-hides sidebar)</div>
                 </div>
             </div>
     </div>
@@ -642,14 +755,16 @@ import random
 
 class SimulationState:
     def __init__(self):
-        self.DELT = 0.01  # 10ms time step
-        self.SYS_XE = 0.05  # System reactance, pu
+        # Phase 2: 5-bus system parameters
+        self.DELT = 0.020  # 20ms time step (matches original IBR system)
+        self.SYS_XE = 0.5  # System reactance, pu (5-bus system value)
         self.TQ_PLANT = 0.25  # Plant time constant, seconds
-        self.VCTRL_KP = 10.0  # Voltage controller proportional gain
-        self.VCTRL_KI = 2.0  # Voltage controller integral gain
-        self.NOISE = 0.001  # Voltage noise level, pu
+        self.VCTRL_KP = 0.5  # Voltage controller proportional gain (IBR system)
+        self.VCTRL_KI = 0.2  # Voltage controller integral gain (IBR system)
+        self.NOISE = 0.0005  # Voltage noise level, pu (IBR system)
         
-        self.VINIT = 1.0  # Initial voltage magnitude, pu
+        # 5-bus system initialization values
+        self.VINIT = 1.025  # Initial voltage magnitude, pu
         self.PINIT = 0.8  # Active power setpoint, pu
         self.QINIT = 0.0  # Initial reactive power, pu
         
@@ -664,8 +779,19 @@ class SimulationState:
         self.time_vals = []
         self.voltage_vals = []
         self.voltage_ref_vals = []
+        self.voltage_compensated_vals = []
         self.reactive_vals = []
         self.reactive_ref_vals = []
+        self.active_vals = []
+        self.active_ref_vals = []
+        self.vcol_vals = []
+        self.vinv_vals = []
+        self.qcmd_vals = []
+        self.pcmd_vals = []
+        self.pcol_vals = []
+        self.qcol_vals = []
+        self.pinv_vals = []
+        self.qinv_vals = []
         
         self.initialize_data()
         self.setup_ybus_matrix()
@@ -677,18 +803,62 @@ class SimulationState:
         self.time_vals = [start_time, start_time + self.DELT]
         self.voltage_vals = [1.0, 1.0]
         self.voltage_ref_vals = [1.0, 1.0]
+        self.voltage_compensated_vals = [1.0, 1.0]
         self.reactive_vals = [0.0, 0.0]
         self.reactive_ref_vals = [0.0, 0.0]
+        self.active_vals = [self.PINIT, self.PINIT]
+        self.active_ref_vals = [self.PINIT, self.PINIT]
+        self.vcol_vals = [1.0, 1.0]
+        self.vinv_vals = [1.0, 1.0]
+        self.qcmd_vals = [0.0, 0.0]
+        self.pcmd_vals = [self.PINIT, self.PINIT]
+        self.pcol_vals = [self.PINIT, self.PINIT]
+        self.qcol_vals = [0.0, 0.0]
+        self.pinv_vals = [self.PINIT, self.PINIT]
+        self.qinv_vals = [0.0, 0.0]
     
     def setup_ybus_matrix(self):
-        num_buses = 2
+        # Phase 2: 5-bus system Ybus matrix
+        num_buses = 5
         self.Ybus_matrix = [[complex() for c in range(num_buses)] for r in range(num_buses)]
+        
+        # Simplified 5-bus parameters for initial testing
+        MPT_TAP = 1.025  # Main power transformer tap
+        MPT_X = 0.10  # Main power transformer reactance
+        MPT_R = MPT_X / 45.0
+        MPT_Z = complex(MPT_R, MPT_X)
+        
+        COL_R = 0.04  # Collector system resistance
+        COL_X = 0.06  # Collector system reactance
+        COL_Z = complex(COL_R, COL_X)
+        COL_Y = complex(0.0, COL_X/2.0)  # Shunt admittance
+        
+        GSU_TAP = 1.025  # Generator step-up transformer tap
+        GSU_X = 0.06
+        GSU_R = GSU_X / 15.0
+        GSU_Z = complex(GSU_R, GSU_X)
+        
+        # Build 5-bus Ybus matrix
         Sys_Z = complex(0.0, self.SYS_XE)
         Yext = 1.0 / Sys_Z
+        
         self.Ybus_matrix[0][0] = Yext
         self.Ybus_matrix[0][1] = -Yext
+        
         self.Ybus_matrix[1][0] = -Yext
-        self.Ybus_matrix[1][1] = Yext
+        self.Ybus_matrix[1][1] = Yext + 1.0 / (MPT_Z * np.power(MPT_TAP, 2))
+        self.Ybus_matrix[1][2] = -1.0 / (MPT_Z * MPT_TAP)
+        
+        self.Ybus_matrix[2][1] = -1.0 / (MPT_Z * MPT_TAP)
+        self.Ybus_matrix[2][2] = 1.0 / MPT_Z + 1.0 / COL_Z + COL_Y
+        self.Ybus_matrix[2][3] = -1.0 / COL_Z
+        
+        self.Ybus_matrix[3][2] = -1.0 / COL_Z
+        self.Ybus_matrix[3][3] = 1.0 / COL_Z + COL_Y + 1.0 / (GSU_Z * np.power(GSU_TAP, 2))
+        self.Ybus_matrix[3][4] = -1.0 / (GSU_Z * GSU_TAP)
+        
+        self.Ybus_matrix[4][3] = -1.0 / (GSU_Z * GSU_TAP)
+        self.Ybus_matrix[4][4] = 1.0 / GSU_Z
     
     def update_parameters(self, param_dict):
         print(f"Python: Updating parameters: {param_dict}")
@@ -757,8 +927,19 @@ class SimulationState:
             self.time_vals.pop(0)
             self.voltage_vals.pop(0)
             self.voltage_ref_vals.pop(0)
+            self.voltage_compensated_vals.pop(0)
             self.reactive_vals.pop(0)
             self.reactive_ref_vals.pop(0)
+            self.active_vals.pop(0)
+            self.active_ref_vals.pop(0)
+            self.vcol_vals.pop(0)
+            self.vinv_vals.pop(0)
+            self.qcmd_vals.pop(0)
+            self.pcmd_vals.pop(0)
+            self.pcol_vals.pop(0)
+            self.qcol_vals.pop(0)
+            self.pinv_vals.pop(0)
+            self.qinv_vals.pop(0)
         
         current_time = max(self.time_vals) if self.time_vals else 0
         while (self.time_vals and 
@@ -767,16 +948,38 @@ class SimulationState:
             self.time_vals.pop(0)
             self.voltage_vals.pop(0)
             self.voltage_ref_vals.pop(0)
+            self.voltage_compensated_vals.pop(0)
             self.reactive_vals.pop(0)
             self.reactive_ref_vals.pop(0)
+            self.active_vals.pop(0)
+            self.active_ref_vals.pop(0)
+            self.vcol_vals.pop(0)
+            self.vinv_vals.pop(0)
+            self.qcmd_vals.pop(0)
+            self.pcmd_vals.pop(0)
+            self.pcol_vals.pop(0)
+            self.qcol_vals.pop(0)
+            self.pinv_vals.pop(0)
+            self.qinv_vals.pop(0)
     
     def get_current_data(self):
         return {
             'time_values': self.time_vals.copy(),
             'voltage_reference': self.voltage_ref_vals.copy(),
             'voltage_actual': self.voltage_vals.copy(),
+            'voltage_compensated': self.voltage_compensated_vals.copy(),
             'reactive_reference': self.reactive_ref_vals.copy(),
             'reactive_actual': self.reactive_vals.copy(),
+            'active_reference': self.active_ref_vals.copy(),
+            'active_actual': self.active_vals.copy(),
+            'vcol_actual': self.vcol_vals.copy(),
+            'vinv_actual': self.vinv_vals.copy(),
+            'qcmd_values': self.qcmd_vals.copy(),
+            'pcmd_values': self.pcmd_vals.copy(),
+            'pcol_actual': self.pcol_vals.copy(),
+            'qcol_actual': self.qcol_vals.copy(),
+            'pinv_actual': self.pinv_vals.copy(),
+            'qinv_actual': self.qinv_vals.copy(),
             'current_time': self.current_time,
             'iteration_count': self.iteration_count,
             'converged': True
@@ -806,6 +1009,7 @@ def simulate_step(voltage_reference):
         sim_state.current_time = round(sim_state.current_time, 2)
         sim_state.time_vals.append(sim_state.current_time)
         sim_state.voltage_ref_vals.append(float(voltage_reference))
+        sim_state.active_ref_vals.append(sim_state.PINIT)  # Fixed active power reference
         
         if len(sim_state.voltage_vals) > 0:
             error = voltage_reference - sim_state.voltage_vals[-1]
@@ -820,6 +1024,8 @@ def simulate_step(voltage_reference):
                 sim_state.DELT * DSTATE / 2.0)
         
         sim_state.reactive_ref_vals.append(Qcmd)
+        sim_state.qcmd_vals.append(Qcmd)
+        sim_state.pcmd_vals.append(sim_state.PINIT)
         
         if len(sim_state.reactive_vals) > 0:
             q_last = sim_state.reactive_vals[-1]
@@ -830,26 +1036,66 @@ def simulate_step(voltage_reference):
         DSTATE = q_err / sim_state.TQ_PLANT
         sim_state.TQ_STORE += DSTATE * sim_state.DELT
         q_new = sim_state.TQ_STORE + sim_state.DELT * DSTATE / 2.0
-        sim_state.reactive_vals.append(q_new)
+        # Note: reactive_vals will be populated from POI power flow calculation
         
         Vsys = sim_state.VSYS + (random.random() - 0.5) * 2.0 * sim_state.NOISE
         
         try:
+            # 5-bus system: Bus 1 is slack (fixed voltage), Bus 5 is IBR (PQ controlled)
             Vout, Sout, solved = GenericNewtonRaphson(
                 Ybus_matrix=sim_state.Ybus_matrix,
-                Vreg_mag=[complex(Vsys), None],
-                Sgen=[None, complex(sim_state.PINIT, q_new)],
+                Vreg_mag=[complex(Vsys), None, None, None, None],  # Only bus 1 voltage is fixed
+                Sgen=[None, None, None, None, complex(sim_state.PINIT, q_new)],  # IBR at bus 5
                 Verbose_Output=False
             )
-            v_new = abs(Vout[1])
+            v_new = abs(Vout[4])  # Monitor voltage at bus 5 (IBR bus)
             sim_state.voltage_vals.append(v_new)
+            sim_state.voltage_compensated_vals.append(v_new)  # For now, same as actual
+            sim_state.vcol_vals.append(abs(Vout[2]))  # Collector bus voltage (bus 3)
+            sim_state.vinv_vals.append(abs(Vout[4]))  # Inverter terminal voltage (bus 5)
+            
+            # Calculate power flows at different buses (matching original IBR_PPC_Tuning.py)
+            # POI power flow (bus 2 to bus 1) 
+            I_poi = (Vout[1] - Vout[0]) / complex(0, sim_state.SYS_XE)
+            S_poi = Vout[1] * np.conjugate(I_poi)
+            sim_state.active_vals.append(S_poi.real)  # POI actual active power
+            sim_state.reactive_vals.append(S_poi.imag)  # POI actual reactive power
+            
+            # Collector power flow (bus 3 to bus 2) - through main power transformer
+            I_col = (Vout[2] - Vout[1]/1.025) / (complex(0.10/45.0, 0.10))  # MPT impedance
+            S_col = Vout[2] * np.conjugate(I_col) 
+            sim_state.pcol_vals.append(S_col.real)
+            sim_state.qcol_vals.append(S_col.imag)
+            
+            # Inverter actual power (same as commanded for this simplified model)
+            sim_state.pinv_vals.append(sim_state.PINIT)
+            sim_state.qinv_vals.append(q_new)
+            
             convergence_status = solved
             
         except Exception as e:
             if len(sim_state.voltage_vals) > 0:
                 sim_state.voltage_vals.append(sim_state.voltage_vals[-1])
+                sim_state.voltage_compensated_vals.append(sim_state.voltage_vals[-1])
+                sim_state.vcol_vals.append(sim_state.vcol_vals[-1] if sim_state.vcol_vals else 1.0)
+                sim_state.vinv_vals.append(sim_state.vinv_vals[-1] if sim_state.vinv_vals else 1.0)
+                sim_state.active_vals.append(sim_state.active_vals[-1] if sim_state.active_vals else sim_state.PINIT)
+                sim_state.reactive_vals.append(sim_state.reactive_vals[-1] if sim_state.reactive_vals else 0.0)
+                sim_state.pcol_vals.append(sim_state.pcol_vals[-1] if sim_state.pcol_vals else sim_state.PINIT)
+                sim_state.qcol_vals.append(sim_state.qcol_vals[-1] if sim_state.qcol_vals else 0.0)
+                sim_state.pinv_vals.append(sim_state.pinv_vals[-1] if sim_state.pinv_vals else sim_state.PINIT)
+                sim_state.qinv_vals.append(sim_state.qinv_vals[-1] if sim_state.qinv_vals else 0.0)
             else:
                 sim_state.voltage_vals.append(sim_state.VINIT)
+                sim_state.voltage_compensated_vals.append(sim_state.VINIT)
+                sim_state.vcol_vals.append(1.0)
+                sim_state.vinv_vals.append(1.0)
+                sim_state.active_vals.append(sim_state.PINIT)
+                sim_state.reactive_vals.append(0.0)
+                sim_state.pcol_vals.append(sim_state.PINIT)
+                sim_state.qcol_vals.append(0.0)
+                sim_state.pinv_vals.append(sim_state.PINIT)
+                sim_state.qinv_vals.append(0.0)
             convergence_status = False
         
         sim_state.maintain_rolling_window()
@@ -993,6 +1239,38 @@ def validate_simulation_health():
         function toggleSimulationControlPanel() {
             const content = document.getElementById('simulation-control-content');
             const toggle = document.getElementById('simulation-control-toggle');
+            const controlGroup = content.closest('.control-group');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                controlGroup.classList.remove('content-collapsed');
+                toggle.innerHTML = '▼';
+            } else {
+                content.classList.add('collapsed');
+                controlGroup.classList.add('content-collapsed');
+                toggle.innerHTML = '▶';
+            }
+        }
+
+        function toggleIbrControlPanel() {
+            const content = document.getElementById('ibr-control-content');
+            const toggle = document.getElementById('ibr-control-toggle');
+            const controlGroup = content.closest('.control-group');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                controlGroup.classList.remove('content-collapsed');
+                toggle.innerHTML = '▼';
+            } else {
+                content.classList.add('collapsed');
+                controlGroup.classList.add('content-collapsed');
+                toggle.innerHTML = '▶';
+            }
+        }
+
+        function toggleVrtControlPanel() {
+            const content = document.getElementById('vrt-control-content');
+            const toggle = document.getElementById('vrt-control-toggle');
             const controlGroup = content.closest('.control-group');
             
             if (content.classList.contains('collapsed')) {

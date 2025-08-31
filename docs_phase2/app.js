@@ -504,8 +504,17 @@ class PyodideBridge {
 // Simple Chart Manager using Chart.js built-in scaling
 class ChartManager {
     constructor() {
-        this.voltageChart = null;
-        this.reactiveChart = null;
+        // Chart instances for all 9 charts (matching Python Qt 3x3 layout)
+        this.poiVoltageChart = null;           // [0][0] POI Voltage (ref+actual+compensated)
+        this.collectorVoltageChart = null;     // [0][1] Collector Bus Voltage  
+        this.inverterVoltageChart = null;      // [0][2] Inverter Terminal Voltage
+        this.poiActiveChart = null;            // [1][0] POI Active Power (ref+actual)
+        this.collectorActiveChart = null;      // [1][1] Collector Bus Active Power
+        this.inverterActiveChart = null;       // [1][2] Inverter Active Power (cmd+actual)
+        this.poiReactiveChart = null;          // [2][0] POI Reactive Power (ref+actual)
+        this.collectorReactiveChart = null;    // [2][1] Collector Bus Reactive Power
+        this.inverterReactiveChart = null;     // [2][2] Inverter Reactive Power (cmd+actual)
+        
         this.retryManager = new RetryManager();
         this.chartExpansionEnabled = true;
         this.chartContractionEnabled = true;
@@ -536,32 +545,169 @@ class ChartManager {
     }
 
     async initialize() {
-        // Initialize voltage chart with retry logic
-        const voltageResult = await this.retryManager.withRetry(async (attempt) => {
-            
-            // Check if Chart.js is available
-            if (typeof Chart === 'undefined') {
-                throw new Error('Chart.js library not available - CDN script may not be loaded yet');
+        // Check if Chart.js is available
+        if (typeof Chart === 'undefined') {
+            throw new Error('Chart.js library not available - CDN script may not be loaded yet');
+        }
+
+        // Initialize all 9 charts using general system
+        const chartsToInitialize = [
+            { prop: 'poiVoltageChart', canvasId: 'poi-voltage-chart', title: 'Regulated POI', yLabel: 'Voltage (pu)', datasets: [
+                { label: 'Reference', color: '#e74c3c' },
+                { label: 'Actual', color: '#3498db' },
+                { label: 'Compensated', color: '#27ae60' }
+            ]},
+            { prop: 'collectorVoltageChart', canvasId: 'collector-voltage-chart', title: 'Collector Bus', yLabel: 'Voltage (pu)', datasets: [
+                { label: 'Collector Bus V', color: '#3498db' }
+            ]},
+            { prop: 'inverterVoltageChart', canvasId: 'inverter-voltage-chart', title: 'Inverter Terminals', yLabel: 'Voltage (pu)', datasets: [
+                { label: 'Inverter Terminal V', color: '#3498db' }
+            ]},
+            { prop: 'poiActiveChart', canvasId: 'poi-active-chart', title: 'Regulated POI', yLabel: 'Active Power (pu)', datasets: [
+                { label: 'Reference', color: '#e74c3c' },
+                { label: 'Actual', color: '#3498db' }
+            ]},
+            { prop: 'collectorActiveChart', canvasId: 'collector-active-chart', title: 'Collector Bus', yLabel: 'Active Power (pu)', datasets: [
+                { label: 'Collector Bus P', color: '#3498db' }
+            ]},
+            { prop: 'inverterActiveChart', canvasId: 'inverter-active-chart', title: 'Inverter Terminals', yLabel: 'Active Power (pu)', datasets: [
+                { label: 'Command', color: '#e74c3c' },
+                { label: 'Actual', color: '#3498db' }
+            ]},
+            { prop: 'poiReactiveChart', canvasId: 'poi-reactive-chart', title: 'Regulated POI', yLabel: 'Reactive Power (pu)', datasets: [
+                { label: 'Reference', color: '#e74c3c' },
+                { label: 'Actual', color: '#3498db' }
+            ]},
+            { prop: 'collectorReactiveChart', canvasId: 'collector-reactive-chart', title: 'Collector Bus', yLabel: 'Reactive Power (pu)', datasets: [
+                { label: 'Collector Bus Q', color: '#3498db' }
+            ]},
+            { prop: 'inverterReactiveChart', canvasId: 'inverter-reactive-chart', title: 'Inverter Terminals', yLabel: 'Reactive Power (pu)', datasets: [
+                { label: 'Command', color: '#e74c3c' },
+                { label: 'Actual', color: '#3498db' }
+            ]}
+        ];
+
+        for (const chartConfig of chartsToInitialize) {
+            const result = await this.retryManager.withRetry(async (attempt) => {
+                return this.initializeChart(chartConfig);
+            }, RetryManager.getConfig('initialization'));
+
+            if (!result.success) {
+                throw new Error(`Failed to initialize ${chartConfig.title} chart after ${result.attempts} attempts: ${result.error.message}`);
             }
-            
-            return this.initializeVoltageChart();
-        }, RetryManager.getConfig('dependency-load'));
-
-        if (!voltageResult.success) {
-            throw new Error(`Failed to initialize voltage chart after ${voltageResult.attempts} attempts: ${voltageResult.error.message}`);
         }
 
-        // Initialize reactive chart with retry logic
-        const reactiveResult = await this.retryManager.withRetry(async (attempt) => {
-            return this.initializeReactiveChart();
-        }, RetryManager.getConfig('initialization'));
-
-        if (!reactiveResult.success) {
-            throw new Error(`Failed to initialize reactive chart after ${reactiveResult.attempts} attempts: ${reactiveResult.error.message}`);
-        }
-
-        console.log('Chart Manager initialized successfully with retry support');
+        console.log('Chart Manager initialized successfully with all 9 charts and retry support');
         return true;
+    }
+
+    initializeChart(config) {
+        const ctx = document.getElementById(config.canvasId).getContext('2d');
+        
+        const datasets = config.datasets.map(dataset => ({
+            label: dataset.label,
+            data: [],
+            borderColor: dataset.color,
+            backgroundColor: this.hexToRgba(dataset.color, 0.1),
+            fill: false,
+            tension: 0.1,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            borderWidth: this.lineWidth
+        }));
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 0, bottom: 0, left: 0, right: 0 }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: config.title,
+                        position: 'top',
+                        align: 'center',
+                        font: { size: 12, weight: '600' },
+                        color: '#2c3e50',
+                        padding: { top: 2, bottom: -15 }
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'line',
+                            boxWidth: 15,
+                            padding: 18,
+                            font: { size: 11 }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        min: -this.tailBuffer,
+                        max: this.totalChartTime - this.tailBuffer,
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)',
+                            font: { size: 11 },
+                            padding: {
+                                top: -5,
+                                bottom: 0
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(128, 128, 128, 0.2)',
+                            drawOnChartArea: true
+                        },
+                        ticks: {
+                            font: { size: 10 },
+                            maxTicksLimit: 8,
+                            padding: 5
+                        },
+                        offset: false,
+                        border: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: config.yLabel,
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: 'rgba(128, 128, 128, 0.2)',
+                            drawOnChartArea: true
+                        },
+                        ticks: {
+                            font: { size: 10 }
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                animation: {
+                    duration: 0
+                }
+            }
+        });
+
+        // Store chart in the appropriate property
+        this[config.prop] = chart;
+        return chart;
     }
 
     initializeVoltageChart() {
@@ -616,7 +762,7 @@ class ChartManager {
                             size: 12, /* Reduced from 14 */
                             weight: '600'
                         },
-                        color: '#000000',
+                        color: '#2c3e50',
                         padding: {
                             top: 0,
                             bottom: -15 /* More aggressive negative padding to eliminate space */
@@ -788,7 +934,7 @@ class ChartManager {
                             size: 12, /* Reduced from 14 */
                             weight: '600'
                         },
-                        color: '#000000',
+                        color: '#2c3e50',
                         padding: {
                             top: 0,
                             bottom: -15 /* More aggressive negative padding to eliminate space */
@@ -906,6 +1052,355 @@ class ChartManager {
             }
         });
         
+    }
+
+    initializeActivePowerChart() {
+        const ctx = document.getElementById('active-power-chart').getContext('2d');
+        
+        this.activePowerChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Reference',
+                    data: [],
+                    borderColor: this.referenceColor,
+                    backgroundColor: this.hexToRgba(this.referenceColor, 0.1),
+                    borderDash: this.getLineDashArray(this.referenceLineStyle),
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: this.lineWidth
+                }, {
+                    label: 'Actual',
+                    data: [],
+                    borderColor: this.actualColor,
+                    backgroundColor: this.hexToRgba(this.actualColor, 0.1),
+                    borderDash: this.getLineDashArray(this.actualLineStyle),
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: this.lineWidth
+                }]
+            },
+            options: {
+                ...this.getCommonChartOptions(),
+                plugins: {
+                    ...this.getCommonChartOptions().plugins,
+                    title: {
+                        display: true,
+                        text: 'POI Active Power',
+                        position: 'top',
+                        align: 'center',
+                        font: { size: 12, weight: '600' },
+                        color: '#2c3e50',
+                        padding: { top: 0, bottom: -15 }
+                    }
+                },
+                scales: {
+                    ...this.getCommonChartOptions().scales,
+                    y: {
+                        ...this.getCommonChartOptions().scales.y,
+                        title: {
+                            display: true,
+                            text: 'Power (pu)',
+                            font: { size: 11 }
+                        }
+                    },
+                    x: {
+                        ...this.getCommonChartOptions().scales.x,
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)',
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    initializeCollectorVoltageChart() {
+        const ctx = document.getElementById('collector-voltage-chart').getContext('2d');
+        
+        this.collectorVoltageChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Collector Bus V',
+                    data: [],
+                    borderColor: '#9b59b6',
+                    backgroundColor: this.hexToRgba('#9b59b6', 0.1),
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: this.lineWidth
+                }]
+            },
+            options: {
+                ...this.getCommonChartOptions(),
+                plugins: {
+                    ...this.getCommonChartOptions().plugins,
+                    title: {
+                        display: true,
+                        text: 'Collector Bus Voltage',
+                        position: 'top',
+                        align: 'center',
+                        font: { size: 12, weight: '600' },
+                        color: '#2c3e50',
+                        padding: { top: 0, bottom: -15 }
+                    }
+                },
+                scales: {
+                    ...this.getCommonChartOptions().scales,
+                    y: {
+                        ...this.getCommonChartOptions().scales.y,
+                        title: {
+                            display: true,
+                            text: 'Voltage (pu)',
+                            font: { size: 11 }
+                        }
+                    },
+                    x: {
+                        ...this.getCommonChartOptions().scales.x,
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)',
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    initializeCollectorActiveChart() {
+        const ctx = document.getElementById('collector-active-chart').getContext('2d');
+        
+        this.collectorActiveChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Collector Bus P',
+                    data: [],
+                    borderColor: '#e67e22',
+                    backgroundColor: this.hexToRgba('#e67e22', 0.1),
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: this.lineWidth
+                }]
+            },
+            options: {
+                ...this.getCommonChartOptions(),
+                plugins: {
+                    ...this.getCommonChartOptions().plugins,
+                    title: {
+                        display: true,
+                        text: 'Collector Bus Active Power',
+                        position: 'top',
+                        align: 'center',
+                        font: { size: 12, weight: '600' },
+                        color: '#2c3e50',
+                        padding: { top: 0, bottom: -15 }
+                    }
+                },
+                scales: {
+                    ...this.getCommonChartOptions().scales,
+                    y: {
+                        ...this.getCommonChartOptions().scales.y,
+                        title: {
+                            display: true,
+                            text: 'Power (pu)',
+                            font: { size: 11 }
+                        }
+                    },
+                    x: {
+                        ...this.getCommonChartOptions().scales.x,
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)',
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    initializeCollectorReactiveChart() {
+        const ctx = document.getElementById('collector-reactive-chart').getContext('2d');
+        
+        this.collectorReactiveChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Collector Bus Q',
+                    data: [],
+                    borderColor: '#1abc9c',
+                    backgroundColor: this.hexToRgba('#1abc9c', 0.1),
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: this.lineWidth
+                }]
+            },
+            options: {
+                ...this.getCommonChartOptions(),
+                plugins: {
+                    ...this.getCommonChartOptions().plugins,
+                    title: {
+                        display: true,
+                        text: 'Collector Bus Reactive Power',
+                        position: 'top',
+                        align: 'center',
+                        font: { size: 12, weight: '600' },
+                        color: '#2c3e50',
+                        padding: { top: 0, bottom: -15 }
+                    }
+                },
+                scales: {
+                    ...this.getCommonChartOptions().scales,
+                    y: {
+                        ...this.getCommonChartOptions().scales.y,
+                        title: {
+                            display: true,
+                            text: 'Power (pu)',
+                            font: { size: 11 }
+                        }
+                    },
+                    x: {
+                        ...this.getCommonChartOptions().scales.x,
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)',
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    initializeInverterVoltageChart() {
+        const ctx = document.getElementById('inverter-voltage-chart').getContext('2d');
+        
+        this.inverterVoltageChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Inverter Terminal V',
+                    data: [],
+                    borderColor: '#34495e',
+                    backgroundColor: this.hexToRgba('#34495e', 0.1),
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: this.lineWidth
+                }]
+            },
+            options: {
+                ...this.getCommonChartOptions(),
+                plugins: {
+                    ...this.getCommonChartOptions().plugins,
+                    title: {
+                        display: true,
+                        text: 'Inverter Terminal Voltage',
+                        position: 'top',
+                        align: 'center',
+                        font: { size: 12, weight: '600' },
+                        color: '#2c3e50',
+                        padding: { top: 0, bottom: -15 }
+                    }
+                },
+                scales: {
+                    ...this.getCommonChartOptions().scales,
+                    y: {
+                        ...this.getCommonChartOptions().scales.y,
+                        title: {
+                            display: true,
+                            text: 'Voltage (pu)',
+                            font: { size: 11 }
+                        }
+                    },
+                    x: {
+                        ...this.getCommonChartOptions().scales.x,
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)',
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    getCommonChartOptions() {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: { top: 0, bottom: -25, left: 0, right: 0 }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'line',
+                        boxWidth: 15,
+                        padding: 18,
+                        font: { size: 11 }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    min: -this.tailBuffer,
+                    max: this.totalChartTime - this.tailBuffer,
+                    grid: {
+                        color: 'rgba(128, 128, 128, 0.2)',
+                        drawOnChartArea: true
+                    },
+                    ticks: {
+                        font: { size: 10 },
+                        maxTicksLimit: 8,
+                        padding: -5
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(128, 128, 128, 0.2)',
+                        drawOnChartArea: true
+                    },
+                    ticks: {
+                        font: { size: 10 }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            animation: {
+                duration: 0
+            }
+        };
     }
     
 
@@ -1147,16 +1642,55 @@ class ChartManager {
         // Chart.js auto-scaling handles expansion/contraction automatically
         // No manual scaling logic needed
         
-        // Update voltage chart
-        this.updateChart(this.voltageChart, chartData.time_values, [
-            { data: chartData.voltage_reference, label: 'Voltage Reference' },
-            { data: chartData.voltage_actual, label: 'Voltage Actual' }
+        // Update POI voltage chart (Row 1, Column 1)
+        this.updateChart(this.poiVoltageChart, chartData.time_values, [
+            { data: chartData.voltage_reference, label: 'Reference' },
+            { data: chartData.voltage_actual, label: 'Actual' },
+            { data: chartData.voltage_compensated || chartData.voltage_actual, label: 'Compensated' }
         ]);
 
-        // Update reactive power chart
-        this.updateChart(this.reactiveChart, chartData.time_values, [
-            { data: chartData.reactive_reference, label: 'Reactive Reference' },
-            { data: chartData.reactive_actual, label: 'Reactive Actual' }
+        // Update collector voltage chart (Row 1, Column 2)
+        this.updateChart(this.collectorVoltageChart, chartData.time_values, [
+            { data: chartData.vcol_actual || chartData.voltage_actual, label: 'Collector Bus V' }
+        ]);
+
+        // Update inverter voltage chart (Row 1, Column 3)  
+        this.updateChart(this.inverterVoltageChart, chartData.time_values, [
+            { data: chartData.vinv_actual || chartData.voltage_actual, label: 'Inverter Terminal V' }
+        ]);
+
+        // Update POI active power chart (Row 2, Column 1) - ppoi_ref_vals (red), ppoi_vals (blue)
+        this.updateChart(this.poiActiveChart, chartData.time_values, [
+            { data: chartData.active_reference || [], label: 'Reference' },
+            { data: chartData.active_actual || [], label: 'Actual' }
+        ]);
+
+        // Update collector active power chart (Row 2, Column 2) - pcol_vals (blue)
+        this.updateChart(this.collectorActiveChart, chartData.time_values, [
+            { data: chartData.pcol_actual || chartData.active_actual || [], label: 'Collector Bus P' }
+        ]);
+
+        // Update inverter active power chart (Row 2, Column 3) - pcmd_vals (red), pinv_vals (blue)  
+        this.updateChart(this.inverterActiveChart, chartData.time_values, [
+            { data: chartData.pcmd_values || [], label: 'Command' },
+            { data: chartData.pinv_actual || chartData.active_actual || [], label: 'Actual' }
+        ]);
+
+        // Update POI reactive power chart (Row 3, Column 1) - qpoi_ref_vals (red), qpoi_vals (blue)
+        this.updateChart(this.poiReactiveChart, chartData.time_values, [
+            { data: chartData.reactive_reference, label: 'Reference' },
+            { data: chartData.reactive_actual, label: 'Actual' }
+        ]);
+
+        // Update collector reactive power chart (Row 3, Column 2) - qcol_vals (blue)
+        this.updateChart(this.collectorReactiveChart, chartData.time_values, [
+            { data: chartData.qcol_actual || chartData.reactive_actual || [], label: 'Collector Bus Q' }
+        ]);
+
+        // Update inverter reactive power chart (Row 3, Column 3) - qcmd_vals (red), qinv_vals (blue)
+        this.updateChart(this.inverterReactiveChart, chartData.time_values, [
+            { data: chartData.qcmd_values || [], label: 'Command' },
+            { data: chartData.qinv_actual || chartData.reactive_actual || [], label: 'Actual' }
         ]);
     }
 
@@ -1217,8 +1751,20 @@ class ChartManager {
     }
 
     resetCharts() {
-        // Reset chart data and x-axis to initial state
-        [this.voltageChart, this.reactiveChart].forEach(chart => {
+        // Reset chart data and x-axis to initial state for all 9 charts
+        const allCharts = [
+            this.poiVoltageChart,
+            this.collectorVoltageChart, 
+            this.inverterVoltageChart,
+            this.poiActiveChart,
+            this.collectorActiveChart,
+            this.inverterActiveChart,
+            this.poiReactiveChart,
+            this.collectorReactiveChart,
+            this.inverterReactiveChart
+        ];
+
+        allCharts.forEach(chart => {
             if (chart) {
                 // Clear data
                 chart.data.labels = [];
@@ -1238,34 +1784,34 @@ class ChartManager {
     }
 
     resetChartScales() {
-        // Clear the stored bounds to restore auto-scaling
-        if (this.voltageChart) {
-            const yAxis = this.voltageChart.options.scales.y;
-            delete yAxis.min;
-            delete yAxis.max;
-            delete yAxis.suggestedMin;
-            delete yAxis.suggestedMax;
-            // Clear stored bounds used by expansion/contraction logic
-            if (this.voltageChart.scales.y) {
-                delete this.voltageChart.scales.y._storedMin;
-                delete this.voltageChart.scales.y._storedMax;
-            }
-            this.voltageChart.update('none');
-        }
+        // Clear the stored bounds to restore auto-scaling for all 9 charts
+        const allCharts = [
+            this.poiVoltageChart,
+            this.collectorVoltageChart, 
+            this.inverterVoltageChart,
+            this.poiActiveChart,
+            this.collectorActiveChart,
+            this.inverterActiveChart,
+            this.poiReactiveChart,
+            this.collectorReactiveChart,
+            this.inverterReactiveChart
+        ];
 
-        if (this.reactiveChart) {
-            const yAxis = this.reactiveChart.options.scales.y;
-            delete yAxis.min;
-            delete yAxis.max;
-            delete yAxis.suggestedMin;
-            delete yAxis.suggestedMax;
-            // Clear stored bounds used by expansion/contraction logic
-            if (this.reactiveChart.scales.y) {
-                delete this.reactiveChart.scales.y._storedMin;
-                delete this.reactiveChart.scales.y._storedMax;
+        allCharts.forEach(chart => {
+            if (chart) {
+                const yAxis = chart.options.scales.y;
+                delete yAxis.min;
+                delete yAxis.max;
+                delete yAxis.suggestedMin;
+                delete yAxis.suggestedMax;
+                // Clear stored bounds used by expansion/contraction logic
+                if (chart.scales.y) {
+                    delete chart.scales.y._storedMin;
+                    delete chart.scales.y._storedMax;
+                }
+                chart.update('none');
             }
-            this.reactiveChart.update('none');
-        }
+        });
         
     }
 
@@ -1863,6 +2409,13 @@ class VoltageExerciseApp {
                 this.setChartLayout('two-columns');
             }
             
+            if (e.key === '3') {
+                e.preventDefault();
+                this.setChartLayout('three-by-three');
+                // Hide sidebar automatically (same as ESC key)
+                this.toggleControlsPanel();
+            }
+            
             // M key for chart maximization toggle
             if (e.key === 'm' || e.key === 'M') {
                 e.preventDefault();
@@ -1955,8 +2508,8 @@ class VoltageExerciseApp {
             if (!chartCanvas) return;
             
             chartCanvas.addEventListener('wheel', (e) => {
-                // Only zoom if Ctrl key is pressed
-                if (!e.ctrlKey && !e.metaKey) return;
+                // Only zoom when Ctrl key is held down
+                if (!e.ctrlKey) return;
                 
                 e.preventDefault();
                 
@@ -2130,11 +2683,16 @@ class VoltageExerciseApp {
         }
         
         if (layout === 'single') {
-            chartsContainer.classList.remove('two-columns');
+            chartsContainer.classList.remove('two-columns', 'three-by-three');
             console.log('Chart layout set to single column');
         } else if (layout === 'two-columns') {
+            chartsContainer.classList.remove('three-by-three');
             chartsContainer.classList.add('two-columns');
             console.log('Chart layout set to two columns');
+        } else if (layout === 'three-by-three') {
+            chartsContainer.classList.remove('two-columns');
+            chartsContainer.classList.add('three-by-three');
+            console.log('Chart layout set to 3x3 grid');
         } else {
             console.warn('Unknown chart layout:', layout);
             return;

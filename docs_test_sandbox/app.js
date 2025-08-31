@@ -329,10 +329,7 @@ class PyodideBridge {
                 if (attempt > 1) {
                     this.loadingManager.updateRetryStatus('step-numpy', attempt, 5, numpyResult.error);
                 }
-                console.log(`Loading NumPy (attempt ${attempt})...`);
-                const result = await this.pyodide.loadPackage(['numpy']);
-                console.log('NumPy package loaded successfully');
-                return result;
+                return await this.pyodide.loadPackage(['numpy']);
             }, RetryManager.getConfig('network-request'));
 
             if (!numpyResult.success) {
@@ -349,7 +346,7 @@ class PyodideBridge {
                 if (attempt > 1) {
                     this.loadingManager.updateRetryStatus('step-python', attempt, 3, moduleResult.error);
                 }
-                return await this.loadEmbeddedPythonCode();
+                return await this.loadSeparatePythonFiles();
             }, RetryManager.getConfig('initialization'));
 
             if (!moduleResult.success) {
@@ -394,41 +391,58 @@ class PyodideBridge {
         }
     }
 
-    async loadEmbeddedPythonCode() {
+    async loadSeparatePythonFiles() {
         try {
-            // Load Newton-Raphson solver from embedded script
-            const newtonScript = document.getElementById('embedded-newton-raphson');
-            if (newtonScript) {
-                console.log('Loading Newton-Raphson Python module...');
-                this.pyodide.runPython(newtonScript.textContent);
-                console.log('Newton-Raphson module loaded successfully');
-            } else {
-                console.warn('Newton-Raphson script element not found');
+            console.log('Loading separate Python files in correct dependency order...');
+            
+            // STEP 1: Load Newton-Raphson solver FIRST (no dependencies)
+            console.log('Step 1: Fetching newton_raphson_clean.py...');
+            const newtonResponse = await fetch('newton_raphson_clean.py');
+            if (!newtonResponse.ok) {
+                throw new Error(`Failed to fetch newton_raphson_clean.py: ${newtonResponse.status}`);
             }
+            const newtonCode = await newtonResponse.text();
+            console.log(`Newton-Raphson code loaded: ${newtonCode.length} characters`);
+            
+            // Execute Newton-Raphson and verify it loaded
+            this.pyodide.runPython(newtonCode);
+            console.log('Newton-Raphson executed successfully');
+            
+            // Verify the function exists in Python global scope
+            const nrFunction = this.pyodide.globals.get('GenericNewtonRaphson');
+            if (!nrFunction) {
+                throw new Error('GenericNewtonRaphson function not found after loading');
+            }
+            console.log('✅ GenericNewtonRaphson function confirmed available');
 
-            // Load voltage control system from embedded script  
-            const voltageScript = document.getElementById('embedded-voltage-control');
-            if (voltageScript) {
-                console.log('Loading voltage control Python module...');
-                this.pyodide.runPython(voltageScript.textContent);
-                console.log('Voltage control module loaded successfully');
-            } else {
-                console.warn('Voltage control script element not found');
+            // STEP 2: Load voltage control system SECOND (depends on Newton-Raphson)
+            console.log('Step 2: Fetching voltage_control_clean.py...');
+            const voltageResponse = await fetch('voltage_control_clean.py');
+            if (!voltageResponse.ok) {
+                throw new Error(`Failed to fetch voltage_control_clean.py: ${voltageResponse.status}`);
             }
+            const voltageCode = await voltageResponse.text();
+            console.log(`Voltage control code loaded: ${voltageCode.length} characters`);
+            
+            // Execute voltage control system
+            this.pyodide.runPython(voltageCode);
+            console.log('Voltage control executed successfully');
+            
+            // Verify simulation functions exist
+            const simStep = this.pyodide.globals.get('simulate_step');
+            if (!simStep) {
+                throw new Error('simulate_step function not found after loading');
+            }
+            console.log('✅ simulate_step function confirmed available');
+            
+            console.log('🎉 All Python modules loaded successfully from separate files');
         } catch (error) {
-            console.error('Failed to load Python modules:', error);
-            console.error('Error details:', {
-                message: error.message,
-                stack: error.stack,
-                name: error.name
-            });
-            throw new Error(`Failed to load Python modules: ${error.message}`);
+            console.error('❌ Failed to load Python modules from separate files:', error);
+            throw new Error(`Failed to load Python modules from separate files: ${error.message}`);
         }
     }
 
     async setupPythonFunctions() {
-        console.log('Setting up Python function references...');
-        
         // Get references to Python functions
         this.simulationFunctions = {
             simulate_step: this.pyodide.globals.get('simulate_step'),
@@ -442,15 +456,9 @@ class PyodideBridge {
         // Verify all functions are available
         for (const [name, func] of Object.entries(this.simulationFunctions)) {
             if (!func) {
-                console.error(`Python function not found: ${name}`);
-                console.log('Available Python globals:', Object.keys(this.pyodide.globals.toJs()));
                 throw new Error(`Python function not found: ${name}`);
-            } else {
-                console.log(`✓ Found Python function: ${name}`);
             }
         }
-        
-        console.log('All Python functions set up successfully');
     }
 
     callPythonFunction(functionName, ...args) {
@@ -616,7 +624,7 @@ class ChartManager {
                             size: 12, /* Reduced from 14 */
                             weight: '600'
                         },
-                        color: '#000000',
+                        color: '#2c3e50',
                         padding: {
                             top: 0,
                             bottom: -15 /* More aggressive negative padding to eliminate space */
@@ -788,7 +796,7 @@ class ChartManager {
                             size: 12, /* Reduced from 14 */
                             weight: '600'
                         },
-                        color: '#000000',
+                        color: '#2c3e50',
                         padding: {
                             top: 0,
                             bottom: -15 /* More aggressive negative padding to eliminate space */
@@ -1725,10 +1733,9 @@ class VoltageExerciseApp {
                 }
             }
             
-            // Arrow key voltage adjustment shortcuts (only when no modifier keys are pressed)
-            if ((e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight' || 
-                e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') &&
-                !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+            // Arrow key voltage adjustment shortcuts
+            if (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight' || 
+                e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                 e.preventDefault(); // Prevent page scroll
                 
                 const voltageSlider = document.getElementById('voltage-slider');
@@ -1771,59 +1778,6 @@ class VoltageExerciseApp {
                 }
             }
             
-            // Debug: Log all Ctrl/Cmd + Arrow key combinations
-            if ((e.code === 'ArrowUp' || e.key === 'ArrowUp' || e.code === 'ArrowDown' || e.key === 'ArrowDown') && (e.ctrlKey || e.metaKey)) {
-                console.log('Modifier + Arrow detected:', {
-                    key: e.key,
-                    code: e.code,
-                    ctrlKey: e.ctrlKey,
-                    metaKey: e.metaKey,
-                    altKey: e.altKey,
-                    shiftKey: e.shiftKey
-                });
-            }
-            
-            // Ctrl+Up/Down for instant min/max voltage setpoint (try both ctrlKey and metaKey)
-            if ((e.code === 'ArrowUp' || e.key === 'ArrowUp') && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                console.log('Ctrl/Cmd+Up detected - setting to maximum');
-                const voltageSlider = document.getElementById('voltage-slider');
-                if (voltageSlider) {
-                    const maxValue = 110; // Maximum voltage
-                    voltageSlider.value = maxValue;
-                    this.simulationController.setVoltageReference(maxValue);
-                    
-                    // Update voltage display
-                    const voltageDisplay = document.getElementById('voltage-display');
-                    if (voltageDisplay) {
-                        voltageDisplay.textContent = maxValue.toFixed(1);
-                    }
-                    console.log('Voltage set to maximum: 110%');
-                } else {
-                    console.log('Voltage slider not found!');
-                }
-            }
-            
-            if ((e.code === 'ArrowDown' || e.key === 'ArrowDown') && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                console.log('Ctrl/Cmd+Down detected - setting to minimum');
-                const voltageSlider = document.getElementById('voltage-slider');
-                if (voltageSlider) {
-                    const minValue = 90; // Minimum voltage
-                    voltageSlider.value = minValue;
-                    this.simulationController.setVoltageReference(minValue);
-                    
-                    // Update voltage display
-                    const voltageDisplay = document.getElementById('voltage-display');
-                    if (voltageDisplay) {
-                        voltageDisplay.textContent = minValue.toFixed(1);
-                    }
-                    console.log('Voltage set to minimum: 90%');
-                } else {
-                    console.log('Voltage slider not found!');
-                }
-            }
-            
             // Question mark key to show keyboard shortcuts
             if (e.key === '?' || (e.shiftKey && e.key === '/')) {
                 e.preventDefault();
@@ -1835,44 +1789,17 @@ class VoltageExerciseApp {
                 }
             }
             
-            // ESC key behavior - close modal first, then minimize charts, then toggle sidebar
+            // ESC key behavior - close modal first, then toggle sidebar
             if (e.code === 'Escape' || e.key === 'Escape') {
                 e.preventDefault();
                 const keyboardShortcutsModal = document.getElementById('keyboard-shortcuts-modal');
-                const maximizedChart = document.querySelector('.chart-wrapper.maximized');
                 
-                // Priority order: 1) Close modal, 2) Minimize chart, 3) Toggle sidebar
+                // If modal is open, close it first
                 if (keyboardShortcutsModal && keyboardShortcutsModal.style.display === 'block') {
                     keyboardShortcutsModal.style.display = 'none';
-                } else if (maximizedChart) {
-                    this.minimizeAllCharts();
                 } else {
                     // Otherwise toggle sidebar
                     this.toggleControlsPanel();
-                }
-            }
-            
-            // Chart layout toggle keys
-            if (e.key === '1') {
-                e.preventDefault();
-                this.setChartLayout('single');
-            }
-            
-            if (e.key === '2') {
-                e.preventDefault();
-                this.setChartLayout('two-columns');
-            }
-            
-            // M key for chart maximization toggle
-            if (e.key === 'm' || e.key === 'M') {
-                e.preventDefault();
-                // Check if any chart is currently maximized
-                const maximizedChart = document.querySelector('.chart-wrapper.maximized');
-                if (maximizedChart) {
-                    this.minimizeAllCharts();
-                } else {
-                    // Default to maximizing the voltage chart
-                    this.maximizeChart('voltage-chart');
                 }
             }
         });
@@ -1894,7 +1821,12 @@ class VoltageExerciseApp {
             keyboardShortcutsBtn.addEventListener('click', () => {
                 console.log('Modal button clicked');
                 keyboardShortcutsModal.style.display = 'block';
-                // Let CSS handle all the styling for consistency
+                
+                // More transparent dark grey with minimal blur
+                keyboardShortcutsModal.style.setProperty('background', 'rgba(60, 60, 60, 0.6)', 'important');
+                keyboardShortcutsModal.style.setProperty('background-color', 'rgba(60, 60, 60, 0.6)', 'important');
+                keyboardShortcutsModal.style.backdropFilter = 'blur(1px)';
+                keyboardShortcutsModal.style.color = 'white';
             });
         }
 
@@ -1912,75 +1844,6 @@ class VoltageExerciseApp {
                 }
             });
         }
-
-        // Chart interaction handlers
-        const voltageChart = document.getElementById('voltage-chart');
-        const reactiveChart = document.getElementById('reactive-chart');
-        
-        const addChartInteraction = (chartCanvas, chartId) => {
-            if (!chartCanvas) return;
-            
-            const chartWrapper = chartCanvas.closest('.chart-wrapper');
-            if (!chartWrapper) return;
-            
-            // Single click feedback
-            chartWrapper.addEventListener('click', (e) => {
-                // Remove clicked class from all charts
-                document.querySelectorAll('.chart-wrapper.clicked').forEach(wrapper => {
-                    wrapper.classList.remove('clicked');
-                });
-                
-                // Add clicked class to this chart
-                chartWrapper.classList.add('clicked');
-                
-                // Remove clicked class after 3 seconds
-                setTimeout(() => {
-                    chartWrapper.classList.remove('clicked');
-                }, 3000);
-            });
-            
-            // Double click maximization
-            chartCanvas.addEventListener('dblclick', (e) => {
-                e.preventDefault();
-                chartWrapper.classList.remove('clicked'); // Remove clicked feedback immediately
-                this.toggleChartMaximization(chartId);
-            });
-        };
-        
-        addChartInteraction(voltageChart, 'voltage-chart');
-        addChartInteraction(reactiveChart, 'reactive-chart');
-
-        // Chart zoom functionality with mouse wheel
-        const addZoomToChart = (chartCanvas, chartType) => {
-            if (!chartCanvas) return;
-            
-            chartCanvas.addEventListener('wheel', (e) => {
-                // Only zoom if Ctrl key is pressed
-                if (!e.ctrlKey && !e.metaKey) return;
-                
-                e.preventDefault();
-                
-                if (!this.chartManager) return;
-                
-                const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8; // Zoom out or in
-                const currentTotalTime = this.chartManager.totalChartTime;
-                const newTotalTime = Math.max(5, Math.min(50, currentTotalTime * zoomFactor));
-                
-                if (newTotalTime !== currentTotalTime) {
-                    console.log(`Zooming ${chartType} chart: ${currentTotalTime}s -> ${newTotalTime}s`);
-                    this.chartManager.setTotalChartTime(newTotalTime);
-                    
-                    // Update the input field in the UI
-                    const totalTimeInput = document.getElementById('total-chart-time');
-                    if (totalTimeInput) {
-                        totalTimeInput.value = newTotalTime;
-                    }
-                }
-            });
-        };
-        
-        addZoomToChart(voltageChart, 'voltage');
-        addZoomToChart(reactiveChart, 'reactive');
 
         // Window event handlers
         window.addEventListener('beforeunload', () => {
@@ -2121,119 +1984,6 @@ class VoltageExerciseApp {
         }, 350); // Wait for CSS transition to complete
     }
 
-    setChartLayout(layout) {
-        const chartsContainer = document.querySelector('.charts-container');
-        
-        if (!chartsContainer) {
-            console.warn('Charts container not found');
-            return;
-        }
-        
-        if (layout === 'single') {
-            chartsContainer.classList.remove('two-columns');
-            console.log('Chart layout set to single column');
-        } else if (layout === 'two-columns') {
-            chartsContainer.classList.add('two-columns');
-            console.log('Chart layout set to two columns');
-        } else {
-            console.warn('Unknown chart layout:', layout);
-            return;
-        }
-        
-        // Trigger chart resize after layout change with multiple attempts
-        const resizeCharts = () => {
-            if (this.chartManager) {
-                try {
-                    if (this.chartManager.voltageChart) {
-                        this.chartManager.voltageChart.resize();
-                        this.chartManager.voltageChart.update('none');
-                    }
-                    if (this.chartManager.reactiveChart) {
-                        this.chartManager.reactiveChart.resize();
-                        this.chartManager.reactiveChart.update('none');
-                    }
-                    console.log('Charts resized for layout:', layout);
-                } catch (error) {
-                    console.warn('Chart resize error:', error);
-                }
-            }
-        };
-        
-        // Multiple resize attempts to ensure proper rendering
-        setTimeout(resizeCharts, 50);   // Quick first attempt
-        setTimeout(resizeCharts, 200);  // Second attempt after CSS transition
-        setTimeout(resizeCharts, 500);  // Final attempt to ensure visibility
-    }
-
-    maximizeChart(chartId) {
-        const chartWrapper = document.querySelector(`#${chartId}`).closest('.chart-wrapper');
-        const chartsContainer = document.querySelector('.charts-container');
-        
-        if (!chartWrapper || !chartsContainer) {
-            console.warn('Chart elements not found for maximization');
-            return;
-        }
-        
-        // Clear any existing maximized charts
-        document.querySelectorAll('.chart-wrapper.maximized').forEach(wrapper => {
-            wrapper.classList.remove('maximized');
-        });
-        chartsContainer.classList.remove('maximized');
-        
-        // Maximize the target chart
-        chartWrapper.classList.add('maximized');
-        chartsContainer.classList.add('maximized');
-        
-        // Resize chart after maximization
-        setTimeout(() => {
-            if (this.chartManager) {
-                const chartInstance = chartId === 'voltage-chart' ? 
-                    this.chartManager.voltageChart : this.chartManager.reactiveChart;
-                if (chartInstance) {
-                    chartInstance.resize();
-                    chartInstance.update('none');
-                }
-            }
-        }, 100);
-        
-        console.log(`Chart maximized: ${chartId}`);
-    }
-
-    minimizeAllCharts() {
-        const chartWrappers = document.querySelectorAll('.chart-wrapper.maximized');
-        const chartsContainer = document.querySelector('.charts-container');
-        
-        chartWrappers.forEach(wrapper => wrapper.classList.remove('maximized'));
-        if (chartsContainer) {
-            chartsContainer.classList.remove('maximized');
-        }
-        
-        // Resize all charts after minimization
-        setTimeout(() => {
-            if (this.chartManager) {
-                if (this.chartManager.voltageChart) {
-                    this.chartManager.voltageChart.resize();
-                    this.chartManager.voltageChart.update('none');
-                }
-                if (this.chartManager.reactiveChart) {
-                    this.chartManager.reactiveChart.resize();
-                    this.chartManager.reactiveChart.update('none');
-                }
-            }
-        }, 100);
-        
-        console.log('All charts minimized');
-    }
-
-    toggleChartMaximization(chartId) {
-        const chartWrapper = document.querySelector(`#${chartId}`).closest('.chart-wrapper');
-        if (chartWrapper && chartWrapper.classList.contains('maximized')) {
-            this.minimizeAllCharts();
-        } else {
-            this.maximizeChart(chartId);
-        }
-    }
-
     saveMenuStates() {
         const menuIds = [
             'tuning-content',
@@ -2299,18 +2049,57 @@ class VoltageExerciseApp {
 // Initialize application when DOM is loaded with auto-retry
 document.addEventListener('DOMContentLoaded', async () => {
     
+    // Check if running from file:// protocol (will cause fetch failures)
+    if (window.location.protocol === 'file:') {
+        const errorHtml = `
+        <div style="
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(255,255,255,0.95); z-index: 10000;
+            display: flex; align-items: center; justify-content: center;
+            font-family: Arial, sans-serif;
+        ">
+            <div style="
+                background: #fff; border: 3px solid #dc3545; border-radius: 10px; 
+                padding: 30px; max-width: 600px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                text-align: center;
+            ">
+                <h2 style="color: #dc3545; margin-top: 0;">⚠️ Server Required</h2>
+                <p style="font-size: 16px; line-height: 1.5; margin: 20px 0;">
+                    This application requires an HTTP server to load Python files.<br>
+                    Opening the HTML file directly (file:// protocol) will fail.
+                </p>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <strong>To run locally:</strong><br>
+                    <code style="background: #e9ecef; padding: 3px 6px; border-radius: 3px;">
+                        python3 -m http.server 8000
+                    </code><br>
+                    Then open: <code style="background: #e9ecef; padding: 3px 6px; border-radius: 3px;">
+                        http://localhost:8000/index.html
+                    </code>
+                </div>
+                <div style="background: #d1ecf1; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <strong>Note:</strong> This works automatically on GitHub Pages<br>
+                    (already served via HTTPS)
+                </div>
+                <button onclick="window.close()" style="
+                    background: #dc3545; color: white; border: none; 
+                    padding: 10px 20px; border-radius: 5px; cursor: pointer;
+                    font-size: 16px;
+                ">Close</button>
+            </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('afterbegin', errorHtml);
+        return; // Don't attempt to initialize
+    }
+    
     const app = new VoltageExerciseApp();
     let retryCount = 0;
     const maxRetries = 2; // Total of 3 attempts (initial + 2 retries)
     
     const attemptInitialization = async () => {
         try {
-            // Add timeout to prevent hanging
-            const initTimeout = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Initialization timeout after 30 seconds')), 30000)
-            );
-            
-            const success = await Promise.race([app.initialize(), initTimeout]);
+            const success = await app.initialize();
             if (success) {
                 console.log('Application initialized successfully');
                 
@@ -2355,30 +2144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Create new app instance for clean retry
         const newApp = new VoltageExerciseApp();
-        
-        // Define new attempt function with the new app instance
-        const newAttemptInitialization = async () => {
-            try {
-                // Add timeout to prevent hanging on retry
-                const retryTimeout = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Retry initialization timeout after 30 seconds')), 30000)
-                );
-                
-                const success = await Promise.race([newApp.initialize(), retryTimeout]);
-                if (success) {
-                    console.log('Application initialized successfully on retry');
-                    // Update global app reference for resize handlers
-                    app.chartManager = newApp.chartManager;
-                    return true;
-                }
-                return false;
-            } catch (error) {
-                console.error(`Retry initialization attempt ${retryCount + 1} failed:`, error);
-                return false;
-            }
-        };
-        
-        success = await newAttemptInitialization();
+        success = await attemptInitialization.call({ initialize: () => newApp.initialize() });
     }
     
     if (!success) {

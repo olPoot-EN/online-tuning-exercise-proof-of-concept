@@ -451,20 +451,28 @@ body {
     background: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
-    padding: 0.5rem;
+    padding: 0.1rem;
     box-shadow: var(--shadow);
     max-width: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.25rem;
 }
 
 /* Two-column layout */
 .charts-container.two-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
+    gap: 0.25rem;
+    align-items: start;
+}
+
+/* Three-column layout */
+.charts-container.three-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.25rem;
     align-items: start;
 }
 
@@ -472,13 +480,14 @@ body {
     position: relative;
     background: var(--card-background);
     border-radius: 0.5rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0.8rem 1.6rem rgba(0, 0, 0, 0.35);
     padding: 0.3rem;
-    min-height: 280px;
+    min-height: 250px;
 }
 
 /* Ensure charts maintain proper dimensions in grid */
-.charts-container.two-columns .chart-wrapper {
+.charts-container.two-columns .chart-wrapper,
+.charts-container.three-columns .chart-wrapper {
     margin-bottom: 0;
     width: 100%;
     min-width: 0; /* Important for grid item sizing */
@@ -488,7 +497,7 @@ body {
 .chart-wrapper .chart-canvas {
     width: 100% !important;
     height: auto !important;
-    max-height: 250px;
+    max-height: 240px;
 }
 
 /* Chart maximization styles */

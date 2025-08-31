@@ -560,6 +560,15 @@ class ChartManager {
             throw new Error(`Failed to initialize reactive chart after ${reactiveResult.attempts} attempts: ${reactiveResult.error.message}`);
         }
 
+        // Initialize dummy charts
+        const dummyResult = await this.retryManager.withRetry(async (attempt) => {
+            return this.initializeDummyCharts();
+        }, RetryManager.getConfig('initialization'));
+
+        if (!dummyResult.success) {
+            throw new Error(`Failed to initialize dummy charts after ${dummyResult.attempts} attempts: ${dummyResult.error.message}`);
+        }
+
         console.log('Chart Manager initialized successfully with retry support');
         return true;
     }
@@ -906,6 +915,180 @@ class ChartManager {
             }
         });
         
+    }
+
+    initializeDummyCharts() {
+        const dummyChartIds = ['dummy-chart-1', 'dummy-chart-2', 'dummy-chart-3', 'dummy-chart-4', 'dummy-chart-5', 'dummy-chart-6', 'dummy-chart-7'];
+        const dummyTitles = ['Temperature', 'Pressure', 'Flow Rate', 'Speed', 'Torque', 'Current', 'Power'];
+        
+        this.dummyCharts = {};
+        
+        dummyChartIds.forEach((chartId, index) => {
+            const ctx = document.getElementById(chartId).getContext('2d');
+            
+            this.dummyCharts[chartId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: `${dummyTitles[index]} Reference`,
+                        data: [],
+                        borderColor: this.referenceColor,
+                        backgroundColor: this.hexToRgba(this.referenceColor, 0.1),
+                        borderDash: this.getLineDashArray(this.referenceLineStyle),
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        borderWidth: this.lineWidth
+                    }, {
+                        label: `${dummyTitles[index]} Actual`,
+                        data: [],
+                        borderColor: this.actualColor,
+                        backgroundColor: this.hexToRgba(this.actualColor, 0.1),
+                        borderDash: this.getLineDashArray(this.actualLineStyle),
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        borderWidth: this.lineWidth
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 0,
+                            bottom: 0,
+                            left: 0,
+                            right: 0
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'start',
+                            labels: {
+                                boxWidth: 15,
+                                padding: 10,
+                                font: {
+                                    size: 11,
+                                    weight: 'normal'
+                                },
+                                color: '#000000'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `${dummyTitles[index]} Response`,
+                            font: {
+                                size: 13,
+                                weight: 'bold'
+                            },
+                            color: '#000000',
+                            padding: {
+                                top: 5,
+                                bottom: 10
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Time (seconds)',
+                                font: {
+                                    size: 10
+                                },
+                                color: '#000000'
+                            },
+                            ticks: {
+                                color: '#000000',
+                                font: {
+                                    size: 9
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: `${dummyTitles[index]} (pu)`,
+                                color: '#000000'
+                            },
+                            ticks: {
+                                color: '#000000',
+                                font: {
+                                    size: 9
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            afterDataLimits: (axis) => {
+                                const chartManager = this;
+                                
+                                if (chartManager.chartExpansionEnabled && chartManager.chartContractionEnabled) {
+                                    const originalRange = axis.max - axis.min;
+                                    const range = Math.max(originalRange, 0.001);
+                                    const padding = range * 0.35;
+                                    
+                                    if (originalRange < 0.001) {
+                                        const center = (axis.max + axis.min) / 2;
+                                        axis.min = center - 0.05;
+                                        axis.max = center + 0.05;
+                                    } else {
+                                        axis.min = axis.min - padding;
+                                        axis.max = axis.max + padding;
+                                    }
+                                    
+                                    if (!axis._storedMin || !axis._storedMax) {
+                                        axis._storedMin = axis.min;
+                                        axis._storedMax = axis.max;
+                                    }
+                                    
+                                    if (chartManager.chartExpansionEnabled && axis.min < axis._storedMin) {
+                                        axis._storedMin = axis.min;
+                                    }
+                                    if (chartManager.chartExpansionEnabled && axis.max > axis._storedMax) {
+                                        axis._storedMax = axis.max;
+                                    }
+                                    
+                                    if (chartManager.chartContractionEnabled) {
+                                        const currentRange = axis._storedMax - axis._storedMin;
+                                        const dataRange = Math.max(axis.max - axis.min, 0.001);
+                                        if (dataRange < currentRange * 0.8) {
+                                            const center = (axis.max + axis.min) / 2;
+                                            const halfRange = Math.max(dataRange / 2, 0.0005);
+                                            axis._storedMin = center - halfRange * 1.35;
+                                            axis._storedMax = center + halfRange * 1.35;
+                                        }
+                                    }
+                                    
+                                    axis.min = axis._storedMin;
+                                    axis.max = axis._storedMax;
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    animation: {
+                        duration: 0
+                    }
+                }
+            });
+        });
+        
+        return true;
     }
     
 
@@ -1863,6 +2046,12 @@ class VoltageExerciseApp {
                 this.setChartLayout('two-columns');
             }
             
+            if (e.key === '3') {
+                e.preventDefault();
+                this.toggleControlsPanel(); // Hide side panel like ESC
+                this.setChartLayout('three-columns');
+            }
+            
             // M key for chart maximization toggle
             if (e.key === 'm' || e.key === 'M') {
                 e.preventDefault();
@@ -2130,11 +2319,16 @@ class VoltageExerciseApp {
         }
         
         if (layout === 'single') {
-            chartsContainer.classList.remove('two-columns');
+            chartsContainer.classList.remove('two-columns', 'three-columns');
             console.log('Chart layout set to single column');
         } else if (layout === 'two-columns') {
+            chartsContainer.classList.remove('three-columns');
             chartsContainer.classList.add('two-columns');
             console.log('Chart layout set to two columns');
+        } else if (layout === 'three-columns') {
+            chartsContainer.classList.remove('two-columns');
+            chartsContainer.classList.add('three-columns');
+            console.log('Chart layout set to three columns');
         } else {
             console.warn('Unknown chart layout:', layout);
             return;

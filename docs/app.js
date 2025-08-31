@@ -939,7 +939,7 @@ class ChartManager {
                         fill: false,
                         tension: 0.1,
                         pointRadius: 0,
-                        pointHoverRadius: 4,
+                        pointHoverRadius: 0,
                         borderWidth: this.lineWidth
                     }, {
                         label: `${dummyTitles[index]} Actual`,
@@ -950,7 +950,7 @@ class ChartManager {
                         fill: false,
                         tension: 0.1,
                         pointRadius: 0,
-                        pointHoverRadius: 4,
+                        pointHoverRadius: 0,
                         borderWidth: this.lineWidth
                     }]
                 },
@@ -969,13 +969,14 @@ class ChartManager {
                         legend: {
                             display: true,
                             position: 'top',
-                            align: 'start',
+                            align: 'end',
                             labels: {
-                                boxWidth: 15,
-                                padding: 10,
+                                usePointStyle: true,
+                                pointStyle: 'line',
+                                boxWidth: 15, /* Reduced from 20 */
+                                padding: 18,   /* Further increased spacing between legend items */
                                 font: {
-                                    size: 11,
-                                    weight: 'normal'
+                                    size: 11  /* Smaller legend font */
                                 },
                                 color: '#000000'
                             }
@@ -983,15 +984,20 @@ class ChartManager {
                         title: {
                             display: true,
                             text: `${dummyTitles[index]} Response`,
+                            position: 'top',
+                            align: 'center',
                             font: {
-                                size: 13,
-                                weight: 'bold'
+                                size: 12, /* Reduced from 14 */
+                                weight: '600'
                             },
                             color: '#000000',
                             padding: {
-                                top: 5,
-                                bottom: 10
+                                top: 0,
+                                bottom: -15 /* More aggressive negative padding to eliminate space */
                             }
+                        },
+                        tooltip: {
+                            enabled: false
                         }
                     },
                     scales: {
@@ -2139,6 +2145,15 @@ class VoltageExerciseApp {
         addChartInteraction(voltageChart, 'voltage-chart');
         addChartInteraction(reactiveChart, 'reactive-chart');
 
+        // Add interaction handlers for all dummy charts
+        const dummyChartIds = ['dummy-chart-1', 'dummy-chart-2', 'dummy-chart-3', 'dummy-chart-4', 'dummy-chart-5', 'dummy-chart-6', 'dummy-chart-7'];
+        dummyChartIds.forEach(chartId => {
+            const dummyChart = document.getElementById(chartId);
+            if (dummyChart) {
+                addChartInteraction(dummyChart, chartId);
+            }
+        });
+
         // Chart zoom functionality with mouse wheel
         const addZoomToChart = (chartCanvas, chartType) => {
             if (!chartCanvas) return;
@@ -2170,6 +2185,15 @@ class VoltageExerciseApp {
         
         addZoomToChart(voltageChart, 'voltage');
         addZoomToChart(reactiveChart, 'reactive');
+
+        // Add zoom functionality to all dummy charts
+        dummyChartIds.forEach((chartId, index) => {
+            const dummyChart = document.getElementById(chartId);
+            if (dummyChart) {
+                const chartType = chartId.replace('dummy-chart-', 'dummy');
+                addZoomToChart(dummyChart, chartType);
+            }
+        });
 
         // Window event handlers
         window.addEventListener('beforeunload', () => {
